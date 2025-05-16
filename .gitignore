@@ -11,6 +11,7 @@ node_modules/
 
 # Testing
 /coverage
+/packages/*/coverage
 
 # Environment variables
 .env
@@ -23,6 +24,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
 # Editor directories and files
 .idea/
@@ -33,3 +35,75 @@ yarn-error.log*
 *.sln
 *.sw?
 .DS_Store
+Thumbs.db
+
+# React specific
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+tsconfig.tsbuildinfo
+storybook-static/
+
+# CSS preprocessors
+.sass-cache/
+*.css.map
+*.sass.map
+*.scss.map
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Misc
+.next/
+out/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.netlify
+
+# Bundle analysis
+/bundles
+stats.json
+bundle-stats.json
+
+# TypeScript compiled output
+*.tsbuildinfo
+
+# NestJS
+/packages/server/dist
+/packages/server/node_modules
+
+# React / Create React App
+/packages/client/node_modules
+/packages/client/.pnp
+/packages/client/.pnp.js
+/packages/client/coverage
+/packages/client/build
+/packages/client/.env.local
+/packages/client/.env.development.local
+/packages/client/.env.test.local
+/packages/client/.env.production.local
+/packages/client/npm-debug.log*
+/packages/client/yarn-debug.log*
+/packages/client/yarn-error.log*
+/packages/client/.eslintcache
+/packages/client/src/react-app-env.d.ts
+
+# Local Netlify folder
+.netlify
+.vercel
+
+# Monorepo specific
+lerna-debug.log
+
+# Generated files
+generated/
