@@ -30,7 +30,6 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 
 // Create React App automatically loads variables from .env files
 // No need for manual dotenv config as long as variables have REACT_APP_ prefix
-fdsafdsa
 
 const theme = createTheme({
     palette: {
