@@ -24,8 +24,19 @@ async function bootstrap() {
 
     // Configure CORS
     app.enableCors({
-        origin: `http://localhost:${CLIENT_PORT}`,
-        credentials: true, // if you're using cookies or auth headers
+        origin: (origin, callback) => {
+            const allowedOrigins = [
+                `http://localhost:${CLIENT_PORT}`,
+                process.env.CLIENT_ORIGIN,
+            ].filter(Boolean);
+
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error(`CORS error: origin ${origin} not allowed`));
+            }
+        },
+        credentials: true,
     });
 
     // Apply global interceptors and filters
