@@ -1,41 +1,55 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { config } from "dotenv";
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import * as path from 'path';
+
+// Load environment variables from the root directory
+config({
+    path: path.resolve(__dirname, '../../..', '.env')
+});
 
 async function bootstrap() {
+    const PORT = process.env.SERVER_PORT || 5000;
+    const CLIENT_PORT = process.env.CLIENT_PORT || 3000;
+
+    console.log(`---Loading environment: SERVER_PORT=${PORT}, CLIENT_PORT=${CLIENT_PORT}---`);
+
     const app = await NestFactory.create(AppModule);
-    
+
+    // Set global prefix for all routes
     app.setGlobalPrefix("api");
+
+    // Configure CORS
     app.enableCors({
-        origin: "http://localhost:3000",
+        origin: `http://localhost:${CLIENT_PORT}`,
         credentials: true, // if you're using cookies or auth headers
     });
-    
-    // Global pipes
+
+    // Apply global interceptors and filters
+    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.useGlobalFilters(new HttpExceptionFilter());
+
+    // Apply global validation pipe with transformation options
     app.useGlobalPipes(
         new ValidationPipe({
-            whitelist: true,
-            transform: true,
-            forbidNonWhitelisted: true,
+            whitelist: true, // Remove properties that are not defined in the DTO
+            forbidNonWhitelisted: true, // Throw error if unknown properties are present
+            transform: true, // Automatically transform payloads to DTO instances
+            transformOptions: { enableImplicitConversion: true },
         }),
     );
-    
-    // Security middleware
-    //   app.use(helmet());
-    //   app.use(cors());
-    
-    // Swagger documentation
-    const config = new DocumentBuilder()
-        .setTitle('Mono-Forge API')
-        .setDescription('The Mono-Forge API documentation')
-        .setVersion('1.0')
-        .addTag('users')
-        .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
-    
-    await app.listen(5000);
-    console.log('Server running on port 5000');
+
+    // Start the server - THIS WAS MISSING!
+    await app.listen(PORT);
+
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`API available at http://localhost:${PORT}/api`);
 }
-bootstrap();
+
+bootstrap().catch(err => {
+    console.error('Error starting server:', err);
+    process.exit(1);
+});
