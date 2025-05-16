@@ -12,8 +12,8 @@ config({
 });
 
 async function bootstrap() {
-    const PORT = process.env.SERVER_PORT || 5000;
-    const CLIENT_PORT = process.env.CLIENT_PORT || 3000;
+    const PORT = Number(process.env.PORT) || Number(process.env.SERVER_PORT) || 5000;
+    const CLIENT_PORT = Number(process.env.CLIENT_PORT) || 3000;
 
     console.log(`---Loading environment: SERVER_PORT=${PORT}, CLIENT_PORT=${CLIENT_PORT}---`);
 
