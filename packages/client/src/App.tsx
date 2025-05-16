@@ -172,9 +172,9 @@ const App: React.FC = () => {
             const response = await axios.post(
                 apiEndpoint,
                 { projectName },
-                { responseType: 'text' }
+                // { responseType: 'text' }
             );
-            setScriptOutput(response.data);
+            setScriptOutput(response.data.data);
             setFormSubmitted(true);
         } catch (err: any) {
             const errorMessage = err.response?.data?.message || err.message || 'Failed to connect to server';
