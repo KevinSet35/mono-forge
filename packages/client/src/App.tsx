@@ -27,6 +27,8 @@ import CodeIcon from '@mui/icons-material/Code';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import { ProjectNameSchema1 } from './project-name_1.schema';
+
 
 // Create React App automatically loads variables from .env files
 // No need for manual dotenv config as long as variables have REACT_APP_ prefix
@@ -104,57 +106,68 @@ const App: React.FC = () => {
     const [apiError, setApiError] = useState<string | null>(null);
 
     // Validate project name when it changes
+    // useEffect(() => {
+    //     validateProjectName(projectName);
+    // }, [projectName]);
+
     useEffect(() => {
-        validateProjectName(projectName);
+        try {
+            ProjectNameSchema1.parse(projectName);
+            setIsValid(true);
+            setError(null);
+        } catch (err: any) {
+            setIsValid(false);
+            setError(err.errors?.[0]?.message || 'Invalid project name');
+        }
     }, [projectName]);
 
-    const validateProjectName = (name: string) => {
-        // Empty is not valid but we don't want to show an error initially
-        if (!name) {
-            setError(null);
-            setIsValid(false);
-            return;
-        }
+    // const validateProjectName = (name: string) => {
+    //     // Empty is not valid but we don't want to show an error initially
+    //     if (!name) {
+    //         setError(null);
+    //         setIsValid(false);
+    //         return;
+    //     }
 
-        // Check if name contains uppercase letters
-        if (/[A-Z]/.test(name)) {
-            setError('Project name cannot contain uppercase letters');
-            setIsValid(false);
-            return;
-        }
+    //     // Check if name contains uppercase letters
+    //     if (/[A-Z]/.test(name)) {
+    //         setError('Project name cannot contain uppercase letters');
+    //         setIsValid(false);
+    //         return;
+    //     }
 
-        // Check if name contains spaces
-        if (/\s/.test(name)) {
-            setError('Project name cannot contain spaces');
-            setIsValid(false);
-            return;
-        }
+    //     // Check if name contains spaces
+    //     if (/\s/.test(name)) {
+    //         setError('Project name cannot contain spaces');
+    //         setIsValid(false);
+    //         return;
+    //     }
 
-        // Check if name contains special characters other than hyphens
-        if (!/^[a-z0-9-]+$/.test(name)) {
-            setError('Project name can only contain lowercase letters, numbers, and hyphens');
-            setIsValid(false);
-            return;
-        }
+    //     // Check if name contains special characters other than hyphens
+    //     if (!/^[a-z0-9-]+$/.test(name)) {
+    //         setError('Project name can only contain lowercase letters, numbers, and hyphens');
+    //         setIsValid(false);
+    //         return;
+    //     }
 
-        // Check if name starts or ends with a hyphen
-        if (name.startsWith('-') || name.endsWith('-')) {
-            setError('Project name cannot start or end with a hyphen');
-            setIsValid(false);
-            return;
-        }
+    //     // Check if name starts or ends with a hyphen
+    //     if (name.startsWith('-') || name.endsWith('-')) {
+    //         setError('Project name cannot start or end with a hyphen');
+    //         setIsValid(false);
+    //         return;
+    //     }
 
-        // Check if name contains consecutive hyphens
-        if (name.includes('--')) {
-            setError('Project name cannot contain consecutive hyphens');
-            setIsValid(false);
-            return;
-        }
+    //     // Check if name contains consecutive hyphens
+    //     if (name.includes('--')) {
+    //         setError('Project name cannot contain consecutive hyphens');
+    //         setIsValid(false);
+    //         return;
+    //     }
 
-        // All checks passed
-        setError(null);
-        setIsValid(true);
-    };
+    //     // All checks passed
+    //     setError(null);
+    //     setIsValid(true);
+    // };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

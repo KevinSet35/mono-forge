@@ -1,0 +1,20 @@
+{
+    "name": "@mono-forge/types",
+    "version": "1.0.0",
+    "description": "Shared type definitions for the mono-forge project",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc && echo \"\n========== 🔨 Building @mono-forge/types... ==========\n\"",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "author": "Your Name",
+    "license": "MIT",
+    "dependencies": {
+        "zod": "^3.21.4"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    }
+}
