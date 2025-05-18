@@ -1,11 +1,11 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
 import { map } from "rxjs/operators";
 import { Observable } from "rxjs";
-import { IBaseResponse, ResponseStatus } from "../types/types";
+import { ApiResponse, ResponseStatus } from "@mono-forge/types";
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, IBaseResponse<T>> {
-    intercept(context: ExecutionContext, next: CallHandler): Observable<IBaseResponse<T>> {
+export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
+    intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
         const ctx = context.switchToHttp();
         const request = ctx.getRequest();
 

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "e386910d-a60f-441b-8cd2-1f9ce2968330",
+    "name": "hi",
+    "email": "hi@gmail.com",
+    "gender": "m",
+    "dateOfBirth": "1990-01-15T00:00:00.000Z"
+  },
+  {
+    "id": "694dedc1-21d1-4f6d-b014-73cc12dcfd4b",
+    "name": "hirrrr",
+    "email": "hi@gmail.com",
+    "gender": "m",
+    "dateOfBirth": "1990-01-15T00:00:00.000Z"
+  },
+  {
+    "id": "a51d44b3-032b-4d1f-9ff2-210a31e851f0",
+    "name": "kim",
+    "email": "yo@gmail.com",
+    "gender": "f",
+    "dateOfBirth": "1998-01-15T00:00:00.000Z"
+  },
+  {
+    "id": "26fe6085-b38a-4324-8911-d3989d528097",
+    "name": "kaptin",
+    "email": "crunch@gmail.com",
+    "gender": "f",
+    "dateOfBirth": "1999-01-10T00:00:00.000Z"
+  }
+]

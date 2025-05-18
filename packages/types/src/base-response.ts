@@ -3,7 +3,13 @@ export enum ResponseStatus {
     ERROR = "error",
 }
 
-export interface IBaseResponse<T = null> {
+export type Error = {
+    code: number;
+    message: string;
+    details?: string;
+};
+
+export interface ApiResponse<T = null> {
     status: ResponseStatus;
     data?: T; // Present only in success responses
     error?: {

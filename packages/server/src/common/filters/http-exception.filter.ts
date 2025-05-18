@@ -1,5 +1,5 @@
+import { ResponseStatus } from "@mono-forge/types";
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from "@nestjs/common";
-import { ResponseStatus } from "../types/types";
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
