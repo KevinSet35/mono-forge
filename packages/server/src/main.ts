@@ -5,6 +5,9 @@ import { config } from "dotenv";
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import * as path from 'path';
+import { PathUtil } from './common/utility/PathUtil';
+import { ServeStaticMiddleware } from './common/middleware/serve-static-middleware';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 // Load environment variables from the root directory
 config({
@@ -17,7 +20,7 @@ async function bootstrap() {
 
     console.log(`---Loading environment: SERVER_PORT=${PORT}, CLIENT_PORT=${CLIENT_PORT}---`);
 
-    const app = await NestFactory.create(AppModule);
+    const app: NestExpressApplication = await NestFactory.create<NestExpressApplication>(AppModule);
 
     // Set global prefix for all routes
     app.setGlobalPrefix("api");
@@ -38,6 +41,14 @@ async function bootstrap() {
         },
         credentials: true,
     });
+
+
+    // Serve the static files from the React app
+    app.useStaticAssets(PathUtil.getStaticAssetsPath());
+
+    // Apply the ServeStaticMiddleware
+    app.use(new ServeStaticMiddleware().use);
+
 
     // Apply global interceptors and filters
     app.useGlobalInterceptors(new ResponseInterceptor());
