@@ -3,11 +3,15 @@ import { join } from 'path';
 export class PathUtil {
 
     static getIndexHtmlPath(): string {
-        return join(__dirname, '..', '..', '..', '..', '..', 'packages', 'client', 'build', 'index.html');
+        const indexHtmlPath = join(__dirname, '..', '..', '..', '..', '..', 'packages', 'client', 'build', 'index.html');
+        console.log(`indexHtmlPath: ${indexHtmlPath}`);
+        return indexHtmlPath;
     }
 
     static getStaticAssetsPath(): string {
-        return join(__dirname, '..', '..', '..', '..', '..', 'packages', 'client', 'build');
+        const staticAssetsPath = join(__dirname, '..', '..', '..', '..', '..', 'packages', 'client', 'build');
+        console.log(`staticAssetsPath: ${staticAssetsPath}`);
+        return staticAssetsPath;
     }
 
 }
