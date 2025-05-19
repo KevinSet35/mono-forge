@@ -22,25 +22,31 @@ async function bootstrap() {
 
     const app: NestExpressApplication = await NestFactory.create<NestExpressApplication>(AppModule);
 
+    // Configure CORS
+    app.enableCors();
+
     // Set global prefix for all routes
     app.setGlobalPrefix("api");
 
-    // Configure CORS
-    app.enableCors({
-        origin: (origin, callback) => {
-            const allowedOrigins = [
-                `http://localhost:${CLIENT_PORT}`,
-                process.env.CLIENT_ORIGIN,
-            ].filter(Boolean);
+    // app.enableCors();
+    // origin: true,
+    // credentials: true,
+    // origin: (origin, callback) => {
+    //     const allowedOrigins = [
+    //         `http://localhost:${CLIENT_PORT}`,
+    //         process.env.CLIENT_ORIGIN,
+    //         'https://mono-forge.onrender.com',  // Add this line
+    //         'http://mono-forge.onrender.com'    // Add this line too for http
+    //     ].filter(Boolean);
 
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error(`CORS error: origin ${origin} not allowed`));
-            }
-        },
-        credentials: true,
-    });
+    //     if (!origin || allowedOrigins.includes(origin)) {
+    //         callback(null, true);
+    //     } else {
+    //         callback(new Error(`CORS error: origin ${origin} not allowed`));
+    //     }
+    // },
+    // credentials: true,
+    // });
 
 
     // Serve the static files from the React app
