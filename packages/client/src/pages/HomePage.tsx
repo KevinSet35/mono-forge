@@ -21,12 +21,27 @@ import {
     CssBaseline,
     LinearProgress,
     Tooltip,
+    FormGroup,
+    FormControlLabel,
+    Checkbox,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    Chip,
+    Grid,
+    Switch,
+    Radio,
+    RadioGroup,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CodeIcon from '@mui/icons-material/Code';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import GitHubIcon from '@mui/icons-material/GitHub';
+import StorageIcon from '@mui/icons-material/Storage';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { ProjectNameSchema } from '@mono-forge/types';
 
 
@@ -95,6 +110,77 @@ if (process.env.NODE_ENV === 'development') {
     console.log(`- API Endpoint: ${apiEndpoint}`);
 }
 
+// Defines available integrations and their descriptions
+const availableIntegrations = [
+    {
+        id: 'git',
+        name: 'Git',
+        description: 'Initialize Git repository with .gitignore and initial commit',
+        icon: <GitHubIcon />,
+        category: 'vcs'
+    },
+    {
+        id: 'supabase',
+        name: 'Supabase',
+        description: 'Setup Supabase client libraries and configuration',
+        icon: <StorageIcon />,
+        category: 'database'
+    },
+    {
+        id: 'docker',
+        name: 'Docker',
+        description: 'Add Dockerfile and docker-compose.yml configurations',
+        icon: <CodeIcon />,
+        category: 'deployment'
+    },
+    {
+        id: 'jest',
+        name: 'Jest',
+        description: 'Configure Jest for unit and integration testing',
+        icon: <CheckCircleOutlineIcon />,
+        category: 'testing'
+    },
+    {
+        id: 'typescript',
+        name: 'TypeScript',
+        description: 'Setup TypeScript with tsconfig.json',
+        icon: <CodeIcon />,
+        category: 'language'
+    },
+    {
+        id: 'eslint',
+        name: 'ESLint',
+        description: 'Add ESLint configuration for code quality',
+        icon: <SettingsIcon />,
+        category: 'quality'
+    },
+    {
+        id: 'prettier',
+        name: 'Prettier',
+        description: 'Add Prettier for consistent code formatting',
+        icon: <SettingsIcon />,
+        category: 'quality'
+    },
+    {
+        id: 'github_actions',
+        name: 'GitHub Actions',
+        description: 'Setup CI/CD workflows with GitHub Actions',
+        icon: <GitHubIcon />,
+        category: 'ci_cd'
+    },
+];
+
+// Group integrations by category
+const integrationCategories = {
+    vcs: { name: 'Version Control', color: '#2e7d32' },
+    database: { name: 'Database', color: '#0288d1' },
+    deployment: { name: 'Deployment', color: '#d32f2f' },
+    testing: { name: 'Testing', color: '#7b1fa2' },
+    language: { name: 'Language', color: '#f57c00' },
+    quality: { name: 'Code Quality', color: '#5d4037' },
+    ci_cd: { name: 'CI/CD', color: '#455a64' },
+};
+
 const HomePage: React.FC = () => {
     const [projectName, setProjectName] = useState('');
     const [scriptOutput, setScriptOutput] = useState('');
@@ -104,12 +190,11 @@ const HomePage: React.FC = () => {
     const [copiedSnackbar, setCopiedSnackbar] = useState(false);
     const [formSubmitted, setFormSubmitted] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
+    const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>(['git']); // Git enabled by default
+    const [expandedSection, setExpandedSection] = useState<string | false>('main');
+    const [advancedMode, setAdvancedMode] = useState(false);
 
     // Validate project name when it changes
-    // useEffect(() => {
-    //     validateProjectName(projectName);
-    // }, [projectName]);
-
     useEffect(() => {
         try {
             ProjectNameSchema.parse(projectName);
@@ -136,8 +221,11 @@ const HomePage: React.FC = () => {
         try {
             const response = await axios.post(
                 apiEndpoint,
-                { projectName },
-                // { responseType: 'text' }
+                {
+                    projectName,
+                    integrations: selectedIntegrations,
+                    advancedConfig: advancedMode ? getAdvancedConfigurations() : {}
+                },
             );
             setScriptOutput(response.data.data);
             setFormSubmitted(true);
@@ -149,6 +237,20 @@ const HomePage: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // State for advanced configuration options
+    const [packageManager, setPackageManager] = useState('npm');
+    const [nodeVersion, setNodeVersion] = useState('18.x');
+
+    // Function to gather advanced configurations
+    const getAdvancedConfigurations = () => {
+        if (!advancedMode) return {};
+
+        return {
+            packageManager,
+            nodeVersion,
+        };
     };
 
     const handleCopy = () => {
@@ -163,6 +265,29 @@ const HomePage: React.FC = () => {
     const handleCloseSnackbar = () => {
         setCopiedSnackbar(false);
     };
+
+    const handleIntegrationToggle = (integrationId: string) => {
+        setSelectedIntegrations(prev =>
+            prev.includes(integrationId)
+                ? prev.filter(id => id !== integrationId)
+                : [...prev, integrationId]
+        );
+    };
+
+    const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+        setExpandedSection(isExpanded ? panel : false);
+    };
+
+    const getSelectedIntegrationsCount = () => {
+        return selectedIntegrations.length;
+    };
+
+    // Group integrations by category for display
+    const groupedIntegrations = Object.entries(integrationCategories).map(([categoryId, category]) => ({
+        ...category,
+        id: categoryId,
+        items: availableIntegrations.filter(integration => integration.category === categoryId)
+    }));
 
     return (
         <ThemeProvider theme={theme}>
@@ -182,25 +307,24 @@ const HomePage: React.FC = () => {
                             MonoForge Script Generator
                         </Typography>
                         <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '600px', mx: 'auto' }}>
-                            Generate custom bash scripts for your development projects by entering a valid project name below.
+                            Generate custom bash scripts for your development projects with pre-configured integrations and tools.
                         </Typography>
                     </Box>
 
                     {/* Form Section */}
                     <Box mb={4}>
-                        <Card elevation={0}>
-                            <CardHeader
-                                title="Configure Your Script"
-                                subheader="Enter your project details below"
-                                sx={{
-                                    pb: 0,
-                                    '& .MuiCardHeader-title': {
-                                        fontSize: '1.25rem',
-                                        color: 'primary.main',
-                                    }
-                                }}
-                            />
-                            <CardContent>
+                        <Accordion
+                            expanded={expandedSection === 'main'}
+                            onChange={handleAccordionChange('main')}
+                            elevation={0}
+                            sx={{ mb: 2 }}
+                        >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                    Basic Configuration
+                                </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
                                 <form onSubmit={handleSubmit}>
                                     <Box mb={3}>
                                         <TextField
@@ -244,28 +368,194 @@ const HomePage: React.FC = () => {
                                             }}
                                         />
                                     </Box>
-                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button
-                                            type="submit"
-                                            variant="contained"
-                                            disabled={loading || !isValid || !projectName}
-                                            disableElevation
+                                </form>
+                            </AccordionDetails>
+                        </Accordion>
+
+                        {/* Integrations Section */}
+                        <Accordion
+                            expanded={expandedSection === 'integrations'}
+                            onChange={handleAccordionChange('integrations')}
+                            elevation={0}
+                            sx={{ mb: 2 }}
+                        >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                        Integrations & Tools
+                                    </Typography>
+                                    <Chip
+                                        label={`${getSelectedIntegrationsCount()} selected`}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                    />
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Typography variant="body2" color="text.secondary" paragraph>
+                                    Select the integrations and tools you want to include in your project setup script.
+                                </Typography>
+
+                                {/* Integrations by category */}
+                                {groupedIntegrations.map(category => (
+                                    <Box key={category.id} sx={{ mb: 3 }}>
+                                        <Typography
+                                            variant="subtitle1"
                                             sx={{
-                                                py: 1,
-                                                px: 4,
-                                                transition: 'all 0.2s',
-                                                '&:hover': {
-                                                    transform: 'translateY(-2px)',
-                                                    boxShadow: '0 6px 20px rgba(74, 109, 167, 0.2)'
-                                                }
+                                                mb: 1.5,
+                                                fontWeight: 600,
+                                                color: category.color,
+                                                display: 'flex',
+                                                alignItems: 'center'
                                             }}
                                         >
-                                            {loading ? 'Generating...' : 'Generate Script'}
-                                        </Button>
+                                            {category.name}
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            {category.items.map((integration) => (
+                                                <Grid key={integration.id} sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
+                                                    <Paper
+                                                        variant="outlined"
+                                                        sx={{
+                                                            p: 2,
+                                                            borderColor: selectedIntegrations.includes(integration.id)
+                                                                ? category.color
+                                                                : 'divider',
+                                                            borderWidth: selectedIntegrations.includes(integration.id) ? 2 : 1,
+                                                            bgcolor: selectedIntegrations.includes(integration.id)
+                                                                ? `${category.color}10`
+                                                                : 'background.paper',
+                                                            transition: 'all 0.2s',
+                                                            cursor: 'pointer',
+                                                            '&:hover': {
+                                                                borderColor: category.color,
+                                                                boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+                                                            }
+                                                        }}
+                                                        onClick={() => handleIntegrationToggle(integration.id)}
+                                                    >
+                                                        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                                                            <Box sx={{ mr: 2, color: category.color }}>
+                                                                {integration.icon}
+                                                            </Box>
+                                                            <Box sx={{ flexGrow: 1 }}>
+                                                                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>
+                                                                    {integration.name}
+                                                                </Typography>
+                                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                                    {integration.description}
+                                                                </Typography>
+                                                            </Box>
+                                                            <Checkbox
+                                                                checked={selectedIntegrations.includes(integration.id)}
+                                                                onChange={() => handleIntegrationToggle(integration.id)}
+                                                                sx={{
+                                                                    p: 0.5,
+                                                                    '&.Mui-checked': {
+                                                                        color: category.color
+                                                                    }
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </Box>
+                                                    </Paper>
+                                                </Grid>
+                                            ))}
+                                        </Grid>
                                     </Box>
-                                </form>
-                            </CardContent>
-                        </Card>
+                                ))}
+                            </AccordionDetails>
+                        </Accordion>
+
+                        {/* Advanced Options */}
+                        <Accordion
+                            expanded={expandedSection === 'advanced'}
+                            onChange={handleAccordionChange('advanced')}
+                            elevation={0}
+                            sx={{ mb: 3 }}
+                        >
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                    Advanced Options
+                                </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Box sx={{ mb: 2 }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={advancedMode}
+                                                onChange={(e) => setAdvancedMode(e.target.checked)}
+                                                color="primary"
+                                            />
+                                        }
+                                        label="Enable Advanced Configuration"
+                                    />
+                                </Box>
+
+                                {advancedMode && (
+                                    <Fade in={true}>
+                                        <Box sx={{
+                                            p: 2,
+                                            backgroundColor: 'rgba(74, 109, 167, 0.05)',
+                                            borderRadius: 1,
+                                            border: '1px solid rgba(74, 109, 167, 0.15)'
+                                        }}>
+                                            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                                                Package Manager
+                                            </Typography>
+                                            <RadioGroup
+                                                row
+                                                value={packageManager}
+                                                onChange={(e) => setPackageManager(e.target.value)}
+                                                name="package-manager-radio-group"
+                                                sx={{ mb: 3 }}
+                                            >
+                                                <FormControlLabel value="npm" control={<Radio />} label="NPM" />
+                                                <FormControlLabel value="yarn" control={<Radio />} label="Yarn" />
+                                                <FormControlLabel value="pnpm" control={<Radio />} label="PNPM" />
+                                            </RadioGroup>
+
+                                            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
+                                                Node Version
+                                            </Typography>
+                                            <RadioGroup
+                                                row
+                                                value={nodeVersion}
+                                                onChange={(e) => setNodeVersion(e.target.value)}
+                                                name="node-version-radio-group"
+                                            >
+                                                <FormControlLabel value="18.x" control={<Radio />} label="18.x (LTS)" />
+                                                <FormControlLabel value="20.x" control={<Radio />} label="20.x (Current)" />
+                                                <FormControlLabel value="latest" control={<Radio />} label="Latest" />
+                                            </RadioGroup>
+                                        </Box>
+                                    </Fade>
+                                )}
+                            </AccordionDetails>
+                        </Accordion>
+
+                        {/* Generate Button */}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                            <Button
+                                variant="contained"
+                                disabled={loading || !isValid || !projectName}
+                                disableElevation
+                                onClick={handleSubmit}
+                                sx={{
+                                    py: 1.5,
+                                    px: 4,
+                                    transition: 'all 0.2s',
+                                    '&:hover': {
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: '0 6px 20px rgba(74, 109, 167, 0.2)'
+                                    }
+                                }}
+                            >
+                                {loading ? 'Generating...' : 'Generate Script'}
+                            </Button>
+                        </Box>
                     </Box>
 
                     {/* API Error Message */}
@@ -303,7 +593,7 @@ const HomePage: React.FC = () => {
                                 <Card elevation={0}>
                                     <CardHeader
                                         title="Generated Script"
-                                        subheader={`Script for project: ${projectName}`}
+                                        subheader={`Script for project: ${projectName} with ${getSelectedIntegrationsCount()} integrations`}
                                         sx={{
                                             pb: 0,
                                             '& .MuiCardHeader-title': {
@@ -350,6 +640,36 @@ const HomePage: React.FC = () => {
                                                 }}
                                             />
                                         </Paper>
+
+                                        {/* Included Integrations Summary */}
+                                        <Box mt={3} mb={2}>
+                                            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                                Included Integrations
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                                {selectedIntegrations.map(id => {
+                                                    const integration = availableIntegrations.find(i => i.id === id);
+                                                    if (!integration) return null;
+
+                                                    const category = integrationCategories[integration.category as keyof typeof integrationCategories];
+                                                    return (
+                                                        <Chip
+                                                            key={id}
+                                                            label={integration.name}
+                                                            icon={integration.icon}
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: `${category.color}15`,
+                                                                color: category.color,
+                                                                borderColor: category.color,
+                                                                borderWidth: 1,
+                                                                borderStyle: 'solid'
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
+                                            </Box>
+                                        </Box>
 
                                         {/* Instructions Section */}
                                         <Box mt={3} p={2.5} sx={{ backgroundColor: 'rgba(74, 109, 167, 0.05)', borderRadius: 1, border: '1px solid rgba(74, 109, 167, 0.15)' }}>
