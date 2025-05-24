@@ -262,7 +262,6 @@ const HomePage: React.FC = () => {
             const requestData = prepareRequestData();
             const validatedData = ScriptGeneratorSchema.parse(requestData);
             const response = await submitForm(validatedData);
-            console.log('---response:', response);
 
             setScriptOutput(response.data.data);
             setFormSubmitted(true);
@@ -533,25 +532,16 @@ const HomePage: React.FC = () => {
     );
 
     const renderBasicConfigSection = () => (
-        <Accordion
-            expanded={expandedSection === 'main'}
-            onChange={handleAccordionChange('main')}
-            elevation={0}
-            sx={{ mb: 2 }}
-        >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    Basic Configuration
-                </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-                <form onSubmit={handleSubmit}>
-                    <Box mb={3}>
-                        {renderProjectNameField()}
-                    </Box>
-                </form>
-            </AccordionDetails>
-        </Accordion>
+        <Box sx={{ mb: 3, p: 3, backgroundColor: 'background.paper', borderRadius: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
+                Basic Configuration
+            </Typography>
+            <form onSubmit={handleSubmit}>
+                <Box mb={1}>
+                    {renderProjectNameField()}
+                </Box>
+            </form>
+        </Box>
     );
 
     const renderIntegrationsSection = () => (
