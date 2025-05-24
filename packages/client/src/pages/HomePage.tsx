@@ -190,7 +190,7 @@ const HomePage: React.FC = () => {
     const [copiedSnackbar, setCopiedSnackbar] = useState(false);
     const [formSubmitted, setFormSubmitted] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
-    const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>(['git']); // Git enabled by default
+    const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>(['typescript']); // TypeScript enabled by default
     const [expandedSection, setExpandedSection] = useState<string | false>('main');
     const [advancedMode, setAdvancedMode] = useState(false);
 
