@@ -40,9 +40,7 @@ export class ScriptGeneratorService {
         ]
     };
 
-    /**
-     * Generate scripts based on template configuration
-     */
+    // Update your main generateScripts method to accept project name
     async generateScripts(scriptInput: ScriptGeneratorInput): Promise<string> {
         console.log('In generateScripts service');
         const config = this.defaultTemplate;
@@ -51,8 +49,9 @@ export class ScriptGeneratorService {
             // Read all module scripts
             const modules = await this.readModuleScripts(config.modules);
 
-            // Generate a truly self-contained script
-            const fullScript = this.generateSelfContainedScript(config.name, modules);
+            // Generate a truly self-contained script with optional project name
+            const projectName = scriptInput.projectName || undefined; // Get project name from input
+            const fullScript = this.generateSelfContainedScript(config.name, modules, projectName);
 
             return fullScript;
         } catch (error) {
@@ -88,9 +87,9 @@ export class ScriptGeneratorService {
     }
 
     /**
-     * Generate a truly self-contained bash script
+     * Generate a truly self-contained bash script with configurable project name
      */
-    private generateSelfContainedScript(templateName: string, modules: ScriptModule[]): string {
+    private generateSelfContainedScript(templateName: string, modules: ScriptModule[], projectName?: string): string {
         // Extract all function definitions from modules (remove shebang and comments)
         const allFunctions = modules
             .map(module => this.extractFunctionDefinitions(module.content))
@@ -100,13 +99,19 @@ export class ScriptGeneratorService {
         // Generate function calls in the correct order
         const functionCalls = this.generateOrderedFunctionCalls(modules);
 
-        return `#!/bin/bash
+        // Set the preconfigured project name if provided
+        const preconfiguredProjectName = projectName ? `PRECONFIGURED_PROJECT_NAME="${projectName}"` : 'PRECONFIGURED_PROJECT_NAME=""';
+
+        const script = `#!/bin/bash
 
 # ${templateName.toUpperCase()} Project Setup Script
 # Self-contained script - no external dependencies required
-# Usage: ./setup-project.sh <project-name>
+# Usage: ./setup-project.sh [project-name]
 
 set -e  # Exit on any error
+
+# Pre-configured project name (can be set by the generator)
+${preconfiguredProjectName}
 
 ${allFunctions}
 
@@ -121,6 +126,8 @@ ${functionCalls}
 
 # Run main function with all arguments
 main "$@"`;
+
+        return script;
     }
 
     /**
