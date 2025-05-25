@@ -283,7 +283,9 @@ const HomePage: React.FC = () => {
     });
 
     const submitForm = async (validatedData: any) => {
-        return await axios.post(apiEndpoint, validatedData);
+        const generateEndPoint = `${apiEndpoint}/generate`;
+        return axios.post(generateEndPoint, validatedData);
+        // return await axios.post(apiEndpoint, validatedData);
     };
 
     const handleSubmissionError = (err: any) => {

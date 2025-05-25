@@ -1,12 +1,14 @@
 // src/modules/generatescript/generatescript.controller.ts
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get } from '@nestjs/common';
 import { GeneratescriptService } from './generatescript.service';
 import { ScriptGeneratorInput } from '@mono-forge/types';
+import { ScriptGeneratorService } from './template.service';
 
 @Controller('generatescript')
 export class GeneratescriptController {
     constructor(
         private readonly generatescriptService: GeneratescriptService,
+        private readonly scriptGeneratorService: ScriptGeneratorService,
     ) { }
 
     // @Post()
@@ -41,4 +43,15 @@ export class GeneratescriptController {
             });
         }
     }
+
+
+    // constructor(private readonly scriptGeneratorService: ScriptGeneratorService) { }
+
+    @Post('generate')
+    generateScriptt(@Body() scriptInput: ScriptGeneratorInput): Promise<string> {
+        console.log('In generateScriptt controller');
+        return this.scriptGeneratorService.generateScripts(scriptInput); //generateScripts();
+    }
+
+
 }

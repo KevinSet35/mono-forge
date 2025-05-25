@@ -1,0 +1,13 @@
+{
+    "name": "monorepo",
+    "modules": [
+        "init/00-validate-args.sh",
+        "init/01-create-root.sh",
+        "init/02-init-workspaces.sh",
+        "client/node-react.sh",
+        "server/nestjs.sh",
+        "post/install-deps.sh",
+        "post/gitignore-and-prettier.sh",
+        "post/readme.sh"
+    ]
+}
