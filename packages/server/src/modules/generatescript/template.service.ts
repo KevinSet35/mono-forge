@@ -1,5 +1,15 @@
-import { ScriptGeneratorInput, IntegrationType, AdvancedConfigType } from '@mono-forge/types';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    ScriptGeneratorInput,
+    IntegrationType,
+    AdvancedConfigType,
+    ScriptGenerationData,
+    IntegrationsListData,
+    PackageManagersData,
+    NodeVersionsData,
+    ValidationData,
+    ScriptGeneratorSchema
+} from '@mono-forge/types';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { existsSync, promises as fs } from 'fs';
 import { join } from 'path';
 
@@ -65,6 +75,221 @@ export class ScriptGeneratorService {
         }
     };
 
+    /**
+     * Generate script with full metadata and validation
+     */
+    async generateScriptWithData(scriptInput: ScriptGeneratorInput): Promise<ScriptGenerationData> {
+        console.log('---ScriptInput:', scriptInput);
+
+        try {
+            // Validate input using the schema
+            const validatedInput = ScriptGeneratorSchema.parse(scriptInput);
+
+            console.log('Generating script with:', {
+                projectName: validatedInput.projectName,
+                integrations: validatedInput.integrations,
+                advancedConfig: validatedInput.advancedConfig
+            });
+
+            const script = await this.generateScripts(validatedInput);
+            console.log('script is:', script);
+
+            // Return the complete data structure
+            return {
+                script,
+                projectName: validatedInput.projectName,
+                integrations: validatedInput.integrations,
+                advancedConfig: validatedInput.advancedConfig,
+                metadata: {
+                    generatedAt: new Date().toISOString(),
+                    scriptLength: script.length,
+                    integrationsCount: validatedInput.integrations.length
+                }
+            };
+        } catch (error) {
+            console.error('Script generation error:', error);
+
+            if (error.name === 'ZodError') {
+                throw new BadRequestException({
+                    message: 'Invalid input parameters',
+                    details: error.errors
+                });
+            }
+
+            throw new BadRequestException(
+                error instanceof Error ? error.message : 'Failed to generate script'
+            );
+        }
+    }
+
+    /**
+     * Generate raw script string only
+     */
+    async generateScriptRaw(scriptInput: ScriptGeneratorInput): Promise<string> {
+        console.log('---ScriptInput_1:', scriptInput);
+
+        try {
+            // Validate input
+            const validatedInput = ScriptGeneratorSchema.parse(scriptInput);
+            return await this.generateScripts(validatedInput);
+        } catch (error) {
+            console.error('Script generation error:', error);
+            throw new BadRequestException(
+                error instanceof Error ? error.message : 'Failed to generate script'
+            );
+        }
+    }
+
+    /**
+     * Get available integrations with categories
+     */
+    getAvailableIntegrations(): IntegrationsListData {
+        console.log('---getAvailableIntegrations:');
+
+        return {
+            integrations: [
+                {
+                    id: 'git',
+                    name: 'Git',
+                    description: 'Initialize Git repository with proper configuration',
+                    category: 'version-control'
+                },
+                {
+                    id: 'supabase',
+                    name: 'Supabase',
+                    description: 'Supabase backend-as-a-service integration',
+                    category: 'backend'
+                },
+                {
+                    id: 'docker',
+                    name: 'Docker',
+                    description: 'Containerization with Docker and docker-compose',
+                    category: 'deployment'
+                },
+                {
+                    id: 'jest',
+                    name: 'Jest',
+                    description: 'Testing framework setup with Jest',
+                    category: 'testing'
+                },
+                {
+                    id: 'typescript',
+                    name: 'Enhanced TypeScript',
+                    description: 'Strict TypeScript configuration with shared types',
+                    category: 'development'
+                },
+                {
+                    id: 'eslint',
+                    name: 'ESLint',
+                    description: 'Code linting with ESLint',
+                    category: 'code-quality'
+                },
+                {
+                    id: 'prettier',
+                    name: 'Prettier',
+                    description: 'Code formatting with Prettier',
+                    category: 'code-quality'
+                },
+                {
+                    id: 'github_actions',
+                    name: 'GitHub Actions',
+                    description: 'CI/CD pipeline with GitHub Actions',
+                    category: 'ci-cd'
+                }
+            ],
+            categories: [
+                'version-control',
+                'backend',
+                'deployment',
+                'testing',
+                'development',
+                'code-quality',
+                'ci-cd'
+            ]
+        };
+    }
+
+    /**
+     * Get available package managers
+     */
+    getPackageManagers(): PackageManagersData {
+        console.log('---getPackageManagers:');
+
+        return {
+            packageManagers: [
+                {
+                    id: 'npm',
+                    name: 'npm',
+                    description: 'Node Package Manager (default)',
+                    isDefault: true
+                },
+                {
+                    id: 'yarn',
+                    name: 'Yarn',
+                    description: 'Fast, reliable, and secure dependency management'
+                },
+                {
+                    id: 'pnpm',
+                    name: 'pnpm',
+                    description: 'Fast, disk space efficient package manager'
+                }
+            ]
+        };
+    }
+
+    /**
+     * Get available Node.js versions
+     */
+    getNodeVersions(): NodeVersionsData {
+        console.log('---getNodeVersions:');
+
+        return {
+            nodeVersions: [
+                {
+                    id: '18.x',
+                    name: 'Node.js 18.x LTS',
+                    description: 'Long Term Support version (recommended)',
+                    isDefault: true
+                },
+                {
+                    id: '20.x',
+                    name: 'Node.js 20.x LTS',
+                    description: 'Latest LTS version'
+                },
+                {
+                    id: 'latest',
+                    name: 'Latest',
+                    description: 'Latest stable version'
+                }
+            ]
+        };
+    }
+
+    /**
+     * Validate input data
+     */
+    validateInput(scriptInput: any): ValidationData {
+        console.log('---validateInput:');
+
+        try {
+            const validatedInput = ScriptGeneratorSchema.parse(scriptInput);
+            return {
+                isValid: true,
+                validatedInput
+            };
+        } catch (error) {
+            return {
+                isValid: false,
+                errors: error.errors || [{
+                    message: error instanceof Error ? error.message : 'Validation failed'
+                }]
+            };
+        }
+    }
+
+    /**
+     * Core script generation logic (unchanged)
+     */
     async generateScripts(scriptInput: ScriptGeneratorInput): Promise<string> {
         console.log('Generating scripts with input:', scriptInput);
 
