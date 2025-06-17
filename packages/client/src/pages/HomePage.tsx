@@ -21,7 +21,6 @@ import {
     CssBaseline,
     LinearProgress,
     Tooltip,
-    FormGroup,
     FormControlLabel,
     Checkbox,
     Accordion,
@@ -51,9 +50,6 @@ import {
     ApiResponse,
     ResponseStatus,
     ScriptGenerationData,
-    IntegrationsListData,
-    PackageManagersData,
-    NodeVersionsData
 } from '@mono-forge/types';
 
 // Theme configuration
