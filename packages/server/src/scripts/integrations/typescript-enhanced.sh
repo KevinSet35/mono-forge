@@ -15,92 +15,6 @@ setup_typescript_enhanced() {
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true
   },
-  "include": [
-    "src"
-  ],
-  "references": [
-    { "path": "../types" }
-  ]
-}
-EOF
-
-    # Install shared types in client
-    npm install ../types
-
-    cd ../..
-
-    # Update root package.json to include types workspace
-    npm pkg set workspaces.0="packages/*"
-    npm pkg set scripts.build:types="npm run build --workspace=@$PROJECT_NAME/types"
-    npm pkg set scripts.dev:types="npm run dev --workspace=@$PROJECT_NAME/types"
-    npm pkg set scripts.type-check="tsc --noEmit"
-    npm pkg set scripts.type-check:watch="tsc --noEmit --watch"
-
-    # Update existing build script to include types
-    npm pkg set scripts.build="npm run build:types && npm run build:client && npm run build:server"
-
-    # Create TypeScript project build script
-    cat > scripts/build-types.sh << 'EOF'
-#!/bin/bash
-echo "📘 Building TypeScript types..."
-
-# Build types package first
-cd packages/types
-npm run build
-
-# Install built types in other packages
-cd ../server
-npm install ../types
-
-cd ../client  
-npm install ../types
-
-cd ../..
-echo "✅ TypeScript types built and installed"
-EOF
-
-    chmod +x scripts/build-types.sh
-
-    # Create type checking script
-    cat > scripts/type-check.sh << 'EOF'
-#!/bin/bash
-echo "📘 Running TypeScript type checking..."
-
-echo "🔍 Checking types package..."
-cd packages/types
-npx tsc --noEmit
-
-echo "🔍 Checking server package..."
-cd ../server
-npx tsc --noEmit
-
-echo "🔍 Checking client package..."
-cd ../client
-npx tsc --noEmit
-
-cd ../..
-echo "✅ All TypeScript checks passed"
-EOF
-
-    chmod +x scripts/type-check.sh
-
-    echo "✅ Enhanced TypeScript configuration setup complete"
-    echo "📝 New features added:"
-    echo "   - Shared types package with strict TypeScript settings"
-    echo "   - Path mapping for easy imports (@/types)"
-    echo "   - Stricter type checking across all packages"
-    echo "   - Build scripts for types package"
-    echo "   - Type checking scripts"
-    echo ""
-    echo "📝 Available commands:"
-    echo "   - npm run build:types: Build shared types package"
-    echo "   - npm run dev:types: Watch and rebuild types"
-    echo "   - npm run type-check: Check types in all packages"
-    echo "   - ./scripts/build-types.sh: Build and install types"
-    echo "   - ./scripts/type-check.sh: Run comprehensive type checking"
-}
-    "noPropertyAccessFromIndexSignature": true
-  },
   "references": [
     { "path": "./packages/client" },
     { "path": "./packages/server" },
@@ -352,7 +266,10 @@ export interface SystemHealth {
 EOF
 
     # Install dependencies for types package
-    npm install
+    npm install > /dev/null 2>&1
+    
+    # Build the types package first
+    npm run build > /dev/null 2>&1
 
     cd ../..
 
@@ -380,7 +297,6 @@ EOF
       "@/*": ["src/*"],
       "@/types": ["../types/src"]
     },
-    // Strict type checking
     "strict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -391,14 +307,14 @@ EOF
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
-  "references": [
-    { "path": "../types" }
-  ]
+//  "references": [
+//    { "path": "../types" }
+//  ]
 }
 EOF
 
     # Install shared types in server
-    npm install ../types
+    npm install ../types > /dev/null 2>&1
 
     cd ../client
 
@@ -430,9 +346,97 @@ EOF
       "@/*": ["*"],
       "@/types": ["../types/src"]
     },
-    // Strict type checking
     "strict": true,
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true
+  },
+  "include": [
+    "src"
+  ],
+//  "references": [
+//    { "path": "../types" }
+//  ]
+}
+EOF
+
+    # Install shared types in client
+    npm install ../types > /dev/null 2>&1
+
+    cd ../..
+
+    # Update root package.json to include types workspace
+    npm pkg set workspaces.0="packages/*"
+    npm pkg set scripts.build:types="npm run build --workspace=@$PROJECT_NAME/types"
+    npm pkg set scripts.dev:types="npm run dev --workspace=@$PROJECT_NAME/types"
+    npm pkg set scripts.type-check="tsc --noEmit"
+    npm pkg set scripts.type-check:watch="tsc --noEmit --watch"
+
+    # Update existing build script to include types
+    npm pkg set scripts.build="npm run build:types && npm run build:client && npm run build:server"
+
+    # Create scripts directory if it doesn't exist
+    mkdir -p scripts
+
+    # Create TypeScript project build script
+    cat > scripts/build-types.sh << 'EOF'
+#!/bin/bash
+echo "📘 Building TypeScript types..."
+
+# Build types package first
+cd packages/types
+npm run build
+
+# Install built types in other packages
+cd ../server
+npm install ../types
+
+cd ../client  
+npm install ../types
+
+cd ../..
+echo "✅ TypeScript types built and installed"
+EOF
+
+    chmod +x scripts/build-types.sh
+
+    # Create type checking script
+    cat > scripts/type-check.sh << 'EOF'
+#!/bin/bash
+echo "📘 Running TypeScript type checking..."
+
+echo "🔍 Checking types package..."
+cd packages/types
+npx tsc --noEmit
+
+echo "🔍 Checking server package..."
+cd ../server
+npx tsc --noEmit
+
+echo "🔍 Checking client package..."
+cd ../client
+npx tsc --noEmit
+
+cd ../..
+echo "✅ All TypeScript checks passed"
+EOF
+
+    chmod +x scripts/type-check.sh
+
+    echo "✅ Enhanced TypeScript configuration setup complete"
+    echo "📝 New features added:"
+    echo "   - Shared types package with strict TypeScript settings"
+    echo "   - Path mapping for easy imports (@/types)"
+    echo "   - Stricter type checking across all packages"
+    echo "   - Build scripts for types package"
+    echo "   - Type checking scripts"
+    echo ""
+    echo "📝 Available commands:"
+    echo "   - npm run build:types: Build shared types package"
+    echo "   - npm run dev:types: Watch and rebuild types"
+    echo "   - npm run type-check: Check types in all packages"
+    echo "   - ./scripts/build-types.sh: Build and install types"
+    echo "   - ./scripts/type-check.sh: Run comprehensive type checking"
+}
