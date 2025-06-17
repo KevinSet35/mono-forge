@@ -12,9 +12,9 @@ function App() {
                 <HomePage />
             </main>
 
-            <footer>
+            {/* <footer>
                 <p>&copy; {new Date().getFullYear()} My Company</p>
-            </footer>
+            </footer> */}
         </div>
     );
 }
