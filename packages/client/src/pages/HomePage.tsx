@@ -47,7 +47,13 @@ import {
     IntegrationType,
     PackageManagerType,
     NodeVersionType,
-    ScriptGeneratorSchema
+    ScriptGeneratorSchema,
+    ApiResponse,
+    ResponseStatus,
+    ScriptGenerationData,
+    IntegrationsListData,
+    PackageManagersData,
+    NodeVersionsData
 } from '@mono-forge/types';
 
 // Theme configuration
@@ -171,6 +177,18 @@ const integrationCategories = {
     ci_cd: { name: 'CI/CD', color: '#455a64' },
 };
 
+// Updated response interfaces to match the new ApiResponse<T> structure
+interface ScriptGenerationResponse extends ApiResponse<ScriptGenerationData> { }
+
+interface ErrorApiResponse extends ApiResponse<null> {
+    status: ResponseStatus.ERROR;
+    error: {
+        code: number;
+        message: string;
+        details?: string;
+    };
+}
+
 const HomePage: React.FC = () => {
     // Environment configuration
     const { CLIENT_PORT, SERVER_PORT, apiEndpoint } = getEnvironmentConfig();
@@ -187,6 +205,9 @@ const HomePage: React.FC = () => {
     const [selectedIntegrations, setSelectedIntegrations] = useState<IntegrationType[]>(['typescript']);
     const [expandedSection, setExpandedSection] = useState<string | false>('main');
     const [advancedMode, setAdvancedMode] = useState(false);
+
+    // New state for response metadata
+    const [responseMetadata, setResponseMetadata] = useState<any>(null);
 
     // Advanced configuration state
     const [packageManager, setPackageManager] = useState<PackageManagerType>('npm');
@@ -257,14 +278,25 @@ const HomePage: React.FC = () => {
         setLoading(true);
         setScriptOutput('');
         setApiError(null);
+        setResponseMetadata(null);
 
         try {
             const requestData = prepareRequestData();
             const validatedData = ScriptGeneratorSchema.parse(requestData);
             const response = await submitForm(validatedData);
 
-            setScriptOutput(response.data.data);
-            setFormSubmitted(true);
+            // Handle the ApiResponse<ScriptGenerationData> structure
+            const apiResponse = response.data as ScriptGenerationResponse;
+
+            if (apiResponse.status === ResponseStatus.SUCCESS && apiResponse.data) {
+                setScriptOutput(apiResponse.data.script);
+                setResponseMetadata(apiResponse.data.metadata);
+                setFormSubmitted(true);
+            } else {
+                // Handle error response
+                const errorResponse = apiResponse as ErrorApiResponse;
+                throw new Error(errorResponse.error?.message || 'Failed to generate script');
+            }
         } catch (err: any) {
             handleSubmissionError(err);
         } finally {
@@ -283,20 +315,36 @@ const HomePage: React.FC = () => {
     });
 
     const submitForm = async (validatedData: any) => {
-        const generateEndPoint = `${apiEndpoint}/generate`;
-        return axios.post(generateEndPoint, validatedData);
-        // return await axios.post(apiEndpoint, validatedData);
+        // Use the main endpoint that returns ApiResponse<ScriptGenerationData>
+        return axios.post(apiEndpoint, validatedData);
     };
 
     const handleSubmissionError = (err: any) => {
+        console.error('API Error:', err);
+
         if (err.errors) {
+            // Zod validation error
             setApiError(`Validation Error: ${err.errors[0]?.message || 'Invalid form data'}`);
+        } else if (err.response?.data) {
+            // Server response error - handle both old format and new ApiResponse format
+            const responseData = err.response.data;
+
+            if (responseData.status === ResponseStatus.ERROR && responseData.error) {
+                // New ApiResponse error format
+                setApiError(`Error: ${responseData.error.message}`);
+            } else if (responseData.message) {
+                // Legacy error format
+                setApiError(`Error: ${responseData.message}`);
+            } else {
+                setApiError('An unexpected error occurred');
+            }
         } else {
-            const errorMessage = err.response?.data?.message || err.message || 'Failed to connect to server';
+            // Network or other error
+            const errorMessage = err.message || 'Failed to connect to server';
             setApiError(`Error: ${errorMessage}`);
         }
-        console.error('API Error:', err);
         setScriptOutput('');
+        setResponseMetadata(null);
     };
 
     // Render functions
@@ -474,6 +522,27 @@ const HomePage: React.FC = () => {
             />
         );
     };
+
+    const renderMetadataSection = () => (
+        responseMetadata && (
+            <Box mt={2} p={2} sx={{ backgroundColor: 'rgba(74, 109, 167, 0.05)', borderRadius: 1 }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    Generation Details
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                    <Typography variant="body2" color="text.secondary">
+                        <strong>Generated:</strong> {new Date(responseMetadata.generatedAt).toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        <strong>Script Size:</strong> {responseMetadata.scriptLength} characters
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        <strong>Integrations:</strong> {responseMetadata.integrationsCount}
+                    </Typography>
+                </Box>
+            </Box>
+        )
+    );
 
     const renderInstructions = () => (
         <Box mt={3} p={2.5} sx={{ backgroundColor: 'rgba(74, 109, 167, 0.05)', borderRadius: 1, border: '1px solid rgba(74, 109, 167, 0.15)' }}>
@@ -713,6 +782,9 @@ const HomePage: React.FC = () => {
                                     }}
                                 />
                             </Paper>
+
+                            {/* Metadata Section */}
+                            {renderMetadataSection()}
 
                             {/* Included Integrations Summary */}
                             <Box mt={3} mb={2}>

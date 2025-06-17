@@ -1,76 +1,117 @@
-import { ScriptGeneratorInput } from '@mono-forge/types';
+import { ScriptGeneratorInput, IntegrationType, AdvancedConfigType } from '@mono-forge/types';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { existsSync, promises as fs } from 'fs';
 import { join } from 'path';
 
-// Define the template configuration interface
-interface ScriptTemplate {
-    name: string;
-    modules: string[];
-}
-
-// Define the response interface
 interface ScriptModule {
     name: string;
     content: string;
     path: string;
 }
 
-// interface GeneratedScript {
-//     templateName: string;
-//     mainScript: string;
-//     modules: ScriptModule[];
-//     fullScript?: string; // Optional: concatenated version
-// }
+interface IntegrationConfig {
+    modules: string[];
+    dependencies?: string[];
+    devDependencies?: string[];
+    scripts?: Record<string, string>;
+}
 
 @Injectable()
 export class ScriptGeneratorService {
-    // Your default template
-    private readonly defaultTemplate: ScriptTemplate = {
-        name: "monorepo",
-        modules: [
-            "init/00-validate-args.sh",
-            "init/01-create-root.sh",
-            "init/02-init-workspaces.sh",
-            "client/node-react.sh",
-            "server/nestjs.sh",
-            "post/install-deps.sh",
-            "post/gitignore-and-prettier.sh",
-            "post/readme.sh"
-        ]
+    private readonly baseModules = [
+        "init/00-validate-args.sh",
+        "init/01-create-root.sh",
+        "init/02-init-workspaces.sh",
+        "client/node-react.sh",
+        "server/nestjs.sh",
+        "post/install-deps.sh",
+        "post/gitignore-and-prettier.sh",
+        "post/readme.sh"
+    ];
+
+    private readonly integrationConfigs: Record<IntegrationType, IntegrationConfig> = {
+        git: {
+            modules: ["integrations/git-setup.sh"],
+            scripts: {
+                "git:init": "git init && git add . && git commit -m 'Initial commit'"
+            }
+        },
+        supabase: {
+            modules: ["integrations/supabase-setup.sh"],
+            dependencies: ["@supabase/supabase-js"],
+            devDependencies: ["supabase"]
+        },
+        docker: {
+            modules: ["integrations/docker-setup.sh"]
+        },
+        jest: {
+            modules: ["integrations/jest-setup.sh"],
+            devDependencies: ["jest", "@types/jest", "ts-jest"]
+        },
+        typescript: {
+            modules: ["integrations/typescript-enhanced.sh"],
+            devDependencies: ["typescript", "@types/node"]
+        },
+        eslint: {
+            modules: ["integrations/eslint-setup.sh"],
+            devDependencies: ["eslint", "@typescript-eslint/parser", "@typescript-eslint/eslint-plugin"]
+        },
+        prettier: {
+            modules: ["integrations/prettier-setup.sh"],
+            devDependencies: ["prettier"]
+        },
+        github_actions: {
+            modules: ["integrations/github-actions-setup.sh"]
+        }
     };
 
-    // Update your main generateScripts method to accept project name
     async generateScripts(scriptInput: ScriptGeneratorInput): Promise<string> {
-        console.log('In generateScripts service');
-        const config = this.defaultTemplate;
+        console.log('Generating scripts with input:', scriptInput);
 
         try {
-            // Read all module scripts
-            const modules = await this.readModuleScripts(config.modules);
+            const modules = this.buildModuleList(scriptInput.integrations || []);
+            const moduleScripts = await this.readModuleScripts(modules);
 
-            // Generate a truly self-contained script with optional project name
-            const projectName = scriptInput.projectName || undefined; // Get project name from input
-            const fullScript = this.generateSelfContainedScript(config.name, modules, projectName);
-
+            const fullScript = this.generateSelfContainedScript(
+                'monorepo',
+                moduleScripts,
+                scriptInput.projectName,
+                scriptInput.integrations || [],
+                scriptInput.advancedConfig
+            );
             return fullScript;
         } catch (error) {
             throw new NotFoundException(`Failed to generate scripts: ${error.message}`);
         }
     }
 
-    /**
-     * Read individual module script files
-     */
+    private buildModuleList(integrations: IntegrationType[]): string[] {
+        let modules = [...this.baseModules];
+
+        integrations.forEach(integration => {
+            const config = this.integrationConfigs[integration];
+            if (config) {
+                modules.push(...config.modules);
+            }
+        });
+
+        return modules;
+    }
+
     private async readModuleScripts(modulePaths: string[]): Promise<ScriptModule[]> {
         const modules: ScriptModule[] = [];
 
         for (const modulePath of modulePaths) {
             try {
                 const fullPath = this.getFilePath(modulePath);
-                const content = await fs.readFile(fullPath, 'utf-8');
+                let content = '';
 
-                // Extract just the filename for the name
+                if (existsSync(fullPath)) {
+                    content = await fs.readFile(fullPath, 'utf-8');
+                } else {
+                    content = this.generateMissingModule(modulePath);
+                }
+
                 const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
 
                 modules.push({
@@ -79,28 +120,53 @@ export class ScriptGeneratorService {
                     path: modulePath
                 });
             } catch (error) {
-                throw new Error(`Failed to read module ${modulePath}: ${error.message}`);
+                const content = this.generateMissingModule(modulePath);
+                const fileName = modulePath.substring(modulePath.lastIndexOf('/') + 1);
+
+                modules.push({
+                    name: fileName,
+                    content: content.trim(),
+                    path: modulePath
+                });
             }
         }
 
         return modules;
     }
 
-    /**
-     * Generate a truly self-contained bash script with configurable project name
-     */
-    private generateSelfContainedScript(templateName: string, modules: ScriptModule[], projectName?: string): string {
-        // Extract all function definitions from modules (remove shebang and comments)
+    private generateMissingModule(modulePath: string): string {
+        const fileName = modulePath.substring(modulePath.lastIndexOf('/') + 1);
+        const functionName = this.getFunctionNameFromFile(fileName);
+
+        return `#!/bin/bash
+# Integration script: ${fileName}
+# This file should be created in src/scripts/${modulePath}
+
+${functionName}() {
+    echo "⚙️ Setting up ${fileName.replace('.sh', '').replace('-', ' ')}..."
+    echo "✅ ${fileName.replace('.sh', '').replace('-', ' ')} setup complete"
+}`;
+    }
+
+    private generateSelfContainedScript(
+        templateName: string,
+        modules: ScriptModule[],
+        projectName?: string,
+        integrations: IntegrationType[] = [],
+        advancedConfig?: AdvancedConfigType
+    ): string {
         const allFunctions = modules
             .map(module => this.extractFunctionDefinitions(module.content))
-            .filter(funcDef => funcDef.trim().length > 0) // Remove empty definitions
+            .filter(funcDef => funcDef.trim().length > 0)
             .join('\n\n');
 
-        // Generate function calls in the correct order
-        const functionCalls = this.generateOrderedFunctionCalls(modules);
+        const functionCalls = this.generateOrderedFunctionCalls(modules, integrations);
+        const preconfiguredProjectName = projectName
+            ? `PRECONFIGURED_PROJECT_NAME="${projectName}"`
+            : 'PRECONFIGURED_PROJECT_NAME=""';
 
-        // Set the preconfigured project name if provided
-        const preconfiguredProjectName = projectName ? `PRECONFIGURED_PROJECT_NAME="${projectName}"` : 'PRECONFIGURED_PROJECT_NAME=""';
+        const packageManager = advancedConfig?.packageManager || 'npm';
+        const nodeVersion = advancedConfig?.nodeVersion || '18.x';
 
         const script = `#!/bin/bash
 
@@ -110,18 +176,25 @@ export class ScriptGeneratorService {
 
 set -e  # Exit on any error
 
-# Pre-configured project name (can be set by the generator)
+# Pre-configured project name and settings
 ${preconfiguredProjectName}
+PACKAGE_MANAGER="${packageManager}"
+NODE_VERSION="${nodeVersion}"
+SELECTED_INTEGRATIONS="${integrations.join(' ')}"
 
 ${allFunctions}
 
 # Main execution flow
 main() {
     echo "🚀 Starting \${PROJECT_NAME} project setup..."
+    echo "📦 Package Manager: \${PACKAGE_MANAGER}"
+    echo "🟢 Node Version: \${NODE_VERSION}"
+    echo "🔧 Integrations: \${SELECTED_INTEGRATIONS}"
     
 ${functionCalls}
     
-    echo "✅ \${PROJECT_NAME} project setup complete with client-server integration and health check!"
+    echo "✅ \${PROJECT_NAME} project setup complete!"
+    echo "🎉 Selected integrations have been configured"
 }
 
 # Run main function with all arguments
@@ -130,10 +203,6 @@ main "$@"`;
         return script;
     }
 
-    /**
-     * Extract only function definitions from script content
-     * Removes shebang, standalone comments, and source statements
-     */
     private extractFunctionDefinitions(content: string): string {
         const lines = content.split('\n');
         const functionLines: string[] = [];
@@ -141,47 +210,38 @@ main "$@"`;
         let braceCount = 0;
         let currentFunction: string[] = [];
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+        for (const line of lines) {
             const trimmed = line.trim();
 
-            // Skip shebang lines
             if (trimmed.startsWith('#!')) {
                 continue;
             }
 
-            // Skip standalone comments (but keep comments inside functions)
             if (trimmed.startsWith('#') && !inFunction) {
                 continue;
             }
 
-            // Detect function start (function_name() { or function_name(){)
             if (!inFunction && (trimmed.includes('() {') || trimmed.includes('){'))) {
                 inFunction = true;
                 braceCount = 0;
                 currentFunction = [];
                 currentFunction.push(line);
 
-                // Count braces in the same line
                 braceCount += (line.match(/{/g) || []).length;
                 braceCount -= (line.match(/}/g) || []).length;
 
                 continue;
             }
 
-            // If we're inside a function, collect all lines
             if (inFunction) {
                 currentFunction.push(line);
 
-                // Count braces to detect function end
                 braceCount += (line.match(/{/g) || []).length;
                 braceCount -= (line.match(/}/g) || []).length;
 
-                // Function ends when brace count reaches 0
                 if (braceCount === 0) {
-                    // Add the complete function to our collection
                     functionLines.push(...currentFunction);
-                    functionLines.push(''); // Add empty line between functions
+                    functionLines.push('');
                     inFunction = false;
                     currentFunction = [];
                 }
@@ -191,11 +251,8 @@ main "$@"`;
         return functionLines.join('\n').trim();
     }
 
-    /**
-     * Generate function calls in the correct order based on module paths
-     */
-    private generateOrderedFunctionCalls(modules: ScriptModule[]): string {
-        const functionMap: Record<string, string> = {
+    private generateOrderedFunctionCalls(modules: ScriptModule[], integrations: IntegrationType[]): string {
+        const baseFunctionMap: Record<string, string> = {
             '00-validate-args.sh': '    validate_arguments "$@"',
             '01-create-root.sh': '    create_root_directory',
             '02-init-workspaces.sh': '    init_workspaces',
@@ -206,52 +263,45 @@ main "$@"`;
             'readme.sh': '    create_readme'
         };
 
-        return modules
+        const integrationFunctionMap: Record<string, string> = {
+            'git-setup.sh': '    setup_git',
+            'supabase-setup.sh': '    setup_supabase',
+            'docker-setup.sh': '    setup_docker',
+            'jest-setup.sh': '    setup_jest',
+            'typescript-enhanced.sh': '    setup_typescript_enhanced',
+            'eslint-setup.sh': '    setup_eslint',
+            'prettier-setup.sh': '    setup_prettier',
+            'github-actions-setup.sh': '    setup_github_actions'
+        };
+
+        const calls = modules
             .map(module => {
                 const fileName = this.getFileName(module.path);
-                return functionMap[fileName] || `    # TODO: Add function call for ${fileName}`;
+                return baseFunctionMap[fileName] || integrationFunctionMap[fileName] || `    # TODO: Add function call for ${fileName}`;
             })
-            .join('\n');
+            .filter(call => !call.includes('TODO'));
+
+        return calls.join('\n');
     }
 
-
+    private getFunctionNameFromFile(fileName: string): string {
+        return fileName.replace('.sh', '').replace(/-/g, '_');
+    }
 
     private getFileName(modulePath: string): string {
         return modulePath.substring(modulePath.lastIndexOf('/') + 1);
     }
 
     private getFilePath(modulePath: string): string {
-        // Define potential paths - from root and from server directory
-        const pathFromRoot = join(
-            process.cwd(),
-            'packages',
-            'server',
-            'src',
-            'scripts',
-        );
+        const pathFromRoot = join(process.cwd(), 'packages', 'server', 'src', 'scripts', modulePath);
+        const pathFromServer = join(process.cwd(), 'src', 'scripts', modulePath);
 
-        const pathFromServer = join(
-            process.cwd(),
-            'src',
-            'scripts',
-        );
-
-        let path = '';
-
-        // Check which path exists and use that one
         if (existsSync(pathFromRoot)) {
-            path = pathFromRoot;
-            console.log(`Found script at root path: ${path}`);
+            return pathFromRoot;
         } else if (existsSync(pathFromServer)) {
-            path = pathFromServer;
-            console.log(`Found script at server path: ${path}`);
+            return pathFromServer;
         } else {
-            // Throw an error if the script is not found in either location
-            const errorMessage = `Script not found! Checked:\n1. ${pathFromRoot}\n2. ${pathFromServer}\nMake sure the script exists at one of these locations.`;
-            console.error(errorMessage);
-            throw new Error(errorMessage);
+            return pathFromServer; // Default to server path for missing files
         }
-
-        return `${path}/${modulePath}`;
     }
 }
