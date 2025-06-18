@@ -1,18 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { GeneratescriptService } from './generatescript.service';
+import { ScriptGeneratorService } from './generatescript.service';
 
 describe('GeneratescriptService', () => {
-  let service: GeneratescriptService;
+    let service: ScriptGeneratorService;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [GeneratescriptService],
-    }).compile();
+    beforeEach(async () => {
+        const module: TestingModule = await Test.createTestingModule({
+            providers: [ScriptGeneratorService],
+        }).compile();
 
-    service = module.get<GeneratescriptService>(GeneratescriptService);
-  });
+        service = module.get<ScriptGeneratorService>(ScriptGeneratorService);
+    });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+    it('should be defined', () => {
+        expect(service).toBeDefined();
+    });
 });
