@@ -8,7 +8,7 @@ import {
     NodeVersionsData,
     ValidationData
 } from '@mono-forge/types';
-import { ScriptGeneratorService } from './generatescript.service';
+import { ScriptGeneratorService } from '../service/script-generator.service';
 
 @Controller('generatescript')
 export class GeneratescriptController {
