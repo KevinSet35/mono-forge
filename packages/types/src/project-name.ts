@@ -30,14 +30,6 @@ export interface ApiResponse<T = null> {
     };
 }
 
-// Gender enum (appears to be used in your client)
-export enum Gender {
-    MALE = "male",
-    FEMALE = "female",
-    OTHER = "other",
-    PREFER_NOT_TO_SAY = "prefer_not_to_say"
-}
-
 // Project name validation
 export const ProjectNameSchema = z
     .string()
