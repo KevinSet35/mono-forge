@@ -50,6 +50,10 @@ import {
     ApiResponse,
     ResponseStatus,
     ScriptGenerationData,
+    INTEGRATION_CATEGORIES,
+    getAllIntegrations,
+    getAllPackageManagers,
+    getAllNodeVersions,
 } from '@mono-forge/types';
 
 // Theme configuration
@@ -102,75 +106,19 @@ const getEnvironmentConfig = () => {
     return { CLIENT_PORT, SERVER_PORT, API_URL, apiEndpoint };
 };
 
-// Integration data
-const availableIntegrations = [
-    {
-        id: 'git' as IntegrationType,
-        name: 'Git',
-        description: 'Initialize Git repository with .gitignore and initial commit',
-        icon: <GitHubIcon />,
-        category: 'vcs'
-    },
-    {
-        id: 'supabase' as IntegrationType,
-        name: 'Supabase',
-        description: 'Setup Supabase client libraries and configuration',
-        icon: <StorageIcon />,
-        category: 'database'
-    },
-    {
-        id: 'docker' as IntegrationType,
-        name: 'Docker',
-        description: 'Add Dockerfile and docker-compose.yml configurations',
-        icon: <CodeIcon />,
-        category: 'deployment'
-    },
-    {
-        id: 'jest' as IntegrationType,
-        name: 'Jest',
-        description: 'Configure Jest for unit and integration testing',
-        icon: <CheckCircleOutlineIcon />,
-        category: 'testing'
-    },
-    {
-        id: 'typescript' as IntegrationType,
-        name: 'TypeScript',
-        description: 'Setup TypeScript with tsconfig.json',
-        icon: <CodeIcon />,
-        category: 'language'
-    },
-    {
-        id: 'eslint' as IntegrationType,
-        name: 'ESLint',
-        description: 'Add ESLint configuration for code quality',
-        icon: <SettingsIcon />,
-        category: 'quality'
-    },
-    {
-        id: 'prettier' as IntegrationType,
-        name: 'Prettier',
-        description: 'Add Prettier for consistent code formatting',
-        icon: <SettingsIcon />,
-        category: 'quality'
-    },
-    {
-        id: 'github_actions' as IntegrationType,
-        name: 'GitHub Actions',
-        description: 'Setup CI/CD workflows with GitHub Actions',
-        icon: <GitHubIcon />,
-        category: 'ci_cd'
-    },
-];
-
-// Integration categories
-const integrationCategories = {
-    vcs: { name: 'Version Control', color: '#2e7d32' },
-    database: { name: 'Database', color: '#0288d1' },
-    deployment: { name: 'Deployment', color: '#d32f2f' },
-    testing: { name: 'Testing', color: '#7b1fa2' },
-    language: { name: 'Language', color: '#f57c00' },
-    quality: { name: 'Code Quality', color: '#5d4037' },
-    ci_cd: { name: 'CI/CD', color: '#455a64' },
+// Icon mapping for integrations
+const getIntegrationIcon = (integrationId: IntegrationType) => {
+    const iconMap: Record<IntegrationType, React.ReactElement> = {
+        git: <GitHubIcon />,
+        supabase: <StorageIcon />,
+        docker: <CodeIcon />,
+        jest: <CheckCircleOutlineIcon />,
+        typescript: <CodeIcon />,
+        eslint: <SettingsIcon />,
+        prettier: <SettingsIcon />,
+        github_actions: <GitHubIcon />,
+    };
+    return iconMap[integrationId] || <CodeIcon />;
 };
 
 // Updated response interfaces to match the new ApiResponse<T> structure
@@ -209,14 +157,24 @@ const HomePage: React.FC = () => {
     const [packageManager, setPackageManager] = useState<PackageManagerType>('npm');
     const [nodeVersion, setNodeVersion] = useState<NodeVersionType>('18.x');
 
+    // Get integration data from the library
+    const availableIntegrations = getAllIntegrations().map(integration => ({
+        ...integration,
+        icon: getIntegrationIcon(integration.id as IntegrationType)
+    }));
+
+    // Get package managers and node versions from the library
+    const packageManagers = getAllPackageManagers();
+    const nodeVersions = getAllNodeVersions();
+
     // Group integrations by category for display
     const groupedIntegrations = React.useMemo(() =>
-        Object.entries(integrationCategories).map(([categoryId, category]) => ({
+        Object.entries(INTEGRATION_CATEGORIES).map(([categoryId, category]) => ({
             ...category,
             id: categoryId,
             items: availableIntegrations.filter(integration => integration.category === categoryId)
         })),
-        []);
+        [availableIntegrations]);
 
     // Validate project name when it changes
     useEffect(() => {
@@ -393,11 +351,11 @@ const HomePage: React.FC = () => {
                 variant="outlined"
                 sx={{
                     p: 2,
-                    borderColor: selectedIntegrations.includes(integration.id)
+                    borderColor: selectedIntegrations.includes(integration.id as IntegrationType)
                         ? category.color
                         : 'divider',
-                    borderWidth: selectedIntegrations.includes(integration.id) ? 2 : 1,
-                    bgcolor: selectedIntegrations.includes(integration.id)
+                    borderWidth: selectedIntegrations.includes(integration.id as IntegrationType) ? 2 : 1,
+                    bgcolor: selectedIntegrations.includes(integration.id as IntegrationType)
                         ? `${category.color}10`
                         : 'background.paper',
                     transition: 'all 0.2s',
@@ -407,7 +365,7 @@ const HomePage: React.FC = () => {
                         boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
                     }
                 }}
-                onClick={() => handleIntegrationToggle(integration.id)}
+                onClick={() => handleIntegrationToggle(integration.id as IntegrationType)}
             >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                     <Box sx={{ mr: 2, color: category.color }}>
@@ -422,8 +380,8 @@ const HomePage: React.FC = () => {
                         </Typography>
                     </Box>
                     <Checkbox
-                        checked={selectedIntegrations.includes(integration.id)}
-                        onChange={() => handleIntegrationToggle(integration.id)}
+                        checked={selectedIntegrations.includes(integration.id as IntegrationType)}
+                        onChange={() => handleIntegrationToggle(integration.id as IntegrationType)}
                         sx={{
                             p: 0.5,
                             '&.Mui-checked': {
@@ -475,9 +433,14 @@ const HomePage: React.FC = () => {
                     name="package-manager-radio-group"
                     sx={{ mb: 3 }}
                 >
-                    <FormControlLabel value="npm" control={<Radio />} label="NPM" />
-                    <FormControlLabel value="yarn" control={<Radio />} label="Yarn" />
-                    <FormControlLabel value="pnpm" control={<Radio />} label="PNPM" />
+                    {packageManagers.map((pm) => (
+                        <FormControlLabel
+                            key={pm.id}
+                            value={pm.id}
+                            control={<Radio />}
+                            label={pm.name}
+                        />
+                    ))}
                 </RadioGroup>
 
                 <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
@@ -489,9 +452,14 @@ const HomePage: React.FC = () => {
                     onChange={(e) => setNodeVersion(e.target.value as NodeVersionType)}
                     name="node-version-radio-group"
                 >
-                    <FormControlLabel value="18.x" control={<Radio />} label="18.x (LTS)" />
-                    <FormControlLabel value="20.x" control={<Radio />} label="20.x (Current)" />
-                    <FormControlLabel value="latest" control={<Radio />} label="Latest" />
+                    {nodeVersions.map((nv) => (
+                        <FormControlLabel
+                            key={nv.id}
+                            value={nv.id}
+                            control={<Radio />}
+                            label={nv.name}
+                        />
+                    ))}
                 </RadioGroup>
             </Box>
         </Fade>
@@ -501,7 +469,7 @@ const HomePage: React.FC = () => {
         const integration = availableIntegrations.find(i => i.id === id);
         if (!integration) return null;
 
-        const category = integrationCategories[integration.category as keyof typeof integrationCategories];
+        const category = INTEGRATION_CATEGORIES[integration.category as keyof typeof INTEGRATION_CATEGORIES];
         return (
             <Chip
                 key={id}
