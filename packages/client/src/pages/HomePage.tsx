@@ -41,6 +41,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
+import DownloadIcon from '@mui/icons-material/Download';
 import {
     ProjectNameSchema,
     IntegrationType,
@@ -143,7 +144,8 @@ const HomePage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isValid, setIsValid] = useState(false);
-    const [copiedSnackbar, setCopiedSnackbar] = useState(false);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
     const [formSubmitted, setFormSubmitted] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [selectedIntegrations, setSelectedIntegrations] = useState<IntegrationType[]>(['typescript']);
@@ -212,11 +214,39 @@ const HomePage: React.FC = () => {
 
     const handleCopy = () => {
         navigator.clipboard.writeText(scriptOutput);
-        setCopiedSnackbar(true);
+        setSnackbarMessage('Script copied to clipboard successfully!');
+        setSnackbarOpen(true);
     };
 
+    const handleDownload = () => {
+        if (!scriptOutput || !projectName) return;
+
+        // Create a blob with the script content
+        const blob = new Blob([scriptOutput], { type: 'text/plain' });
+
+        // Create a temporary download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${projectName}-setup.sh`;
+
+        // Trigger the download
+        document.body.appendChild(link);
+        link.click();
+
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        // Show success message
+        setSnackbarMessage(`Script downloaded as ${projectName}-setup.sh`);
+        setSnackbarOpen(true);
+    };
+
+    // Update the handleCloseSnackbar function:
     const handleCloseSnackbar = () => {
-        setCopiedSnackbar(false);
+        setSnackbarOpen(false);
+        setSnackbarMessage('');
     };
 
     const getSelectedIntegrationsCount = () => {
@@ -708,30 +738,46 @@ const HomePage: React.FC = () => {
                                 }
                             }}
                             action={
-                                <Tooltip title="Copy to clipboard">
-                                    <IconButton onClick={handleCopy}>
-                                        <ContentCopyIcon />
-                                    </IconButton>
-                                </Tooltip>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <Tooltip title="Download script file">
+                                        <IconButton
+                                            onClick={handleDownload}
+                                            sx={{
+                                                color: 'primary.main',
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(74, 109, 167, 0.1)'
+                                                }
+                                            }}
+                                        >
+                                            <DownloadIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Copy to clipboard">
+                                        <IconButton onClick={handleCopy}>
+                                            <ContentCopyIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                </Box>
                             }
                         />
+                        {/* Rest of your CardContent remains the same */}
                         <CardContent>
                             <Paper
                                 variant="outlined"
                                 sx={{
-                                    p: 0, // Remove padding to let the TextField handle it
+                                    p: 0,
                                     borderRadius: 1,
                                     backgroundColor: '#f8f9fa',
                                     border: '1px solid #e0e0e0',
-                                    maxHeight: '500px', // Increased height for better visibility
-                                    overflow: 'hidden', // Let the inner component handle scrolling
+                                    maxHeight: '500px',
+                                    overflow: 'hidden',
                                     position: 'relative'
                                 }}
                             >
                                 <TextField
                                     multiline
                                     fullWidth
-                                    maxRows={25} // Set maximum rows for better control
+                                    maxRows={25}
                                     value={scriptOutput}
                                     variant="filled"
                                     slotProps={{
@@ -745,7 +791,6 @@ const HomePage: React.FC = () => {
                                                 backgroundColor: '#f8f9fa',
                                                 maxHeight: '500px',
                                                 overflow: 'auto',
-                                                // Enhanced scrollbar styling
                                                 '&::-webkit-scrollbar': {
                                                     width: '12px',
                                                 },
@@ -761,10 +806,8 @@ const HomePage: React.FC = () => {
                                                 '&::-webkit-scrollbar-thumb:hover': {
                                                     background: '#a8a8a8',
                                                 },
-                                                // Firefox scrollbar styling
                                                 scrollbarWidth: 'thin',
                                                 scrollbarColor: '#c1c1c1 #f1f1f1',
-                                                // Ensure the text wraps properly
                                                 whiteSpace: 'pre-wrap',
                                                 wordBreak: 'break-word',
                                             }
@@ -777,7 +820,6 @@ const HomePage: React.FC = () => {
                                         }
                                     }}
                                 />
-                                {/* Optional: Add a scroll indicator */}
                                 <Box
                                     sx={{
                                         position: 'absolute',
@@ -861,7 +903,7 @@ const HomePage: React.FC = () => {
             </Box>
 
             <Snackbar
-                open={copiedSnackbar}
+                open={snackbarOpen}
                 autoHideDuration={3000}
                 onClose={handleCloseSnackbar}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
@@ -872,7 +914,7 @@ const HomePage: React.FC = () => {
                     variant="filled"
                     sx={{ width: '100%' }}
                 >
-                    Script copied to clipboard successfully!
+                    {snackbarMessage}
                 </Alert>
             </Snackbar>
         </ThemeProvider>
