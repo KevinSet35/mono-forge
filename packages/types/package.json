@@ -6,6 +6,7 @@
     "types": "dist/index.d.ts",
     "scripts": {
         "build": "tsc && echo \"\n========== 🔨 Building @mono-forge/types... ==========\n\"",
+        "test": "",
         "clean": "rm -rf dist",
         "prepublishOnly": "npm run clean && npm run build"
     },
