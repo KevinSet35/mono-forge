@@ -719,20 +719,21 @@ const HomePage: React.FC = () => {
                             <Paper
                                 variant="outlined"
                                 sx={{
-                                    p: 2,
+                                    p: 0, // Remove padding to let the TextField handle it
                                     borderRadius: 1,
-                                    backgroundColor: '#f5f7f9',
+                                    backgroundColor: '#f8f9fa',
                                     border: '1px solid #e0e0e0',
-                                    maxHeight: '400px',
-                                    overflow: 'auto'
+                                    maxHeight: '500px', // Increased height for better visibility
+                                    overflow: 'hidden', // Let the inner component handle scrolling
+                                    position: 'relative'
                                 }}
                             >
                                 <TextField
                                     multiline
                                     fullWidth
-                                    minRows={10}
+                                    maxRows={25} // Set maximum rows for better control
                                     value={scriptOutput}
-                                    variant="standard"
+                                    variant="filled"
                                     slotProps={{
                                         input: {
                                             readOnly: true,
@@ -740,11 +741,61 @@ const HomePage: React.FC = () => {
                                             sx: {
                                                 fontFamily: 'Consolas, Monaco, "Courier New", monospace',
                                                 fontSize: '0.875rem',
-                                                padding: 0
+                                                padding: '16px',
+                                                backgroundColor: '#f8f9fa',
+                                                maxHeight: '500px',
+                                                overflow: 'auto',
+                                                // Enhanced scrollbar styling
+                                                '&::-webkit-scrollbar': {
+                                                    width: '12px',
+                                                },
+                                                '&::-webkit-scrollbar-track': {
+                                                    background: '#f1f1f1',
+                                                    borderRadius: '6px',
+                                                },
+                                                '&::-webkit-scrollbar-thumb': {
+                                                    background: '#c1c1c1',
+                                                    borderRadius: '6px',
+                                                    border: '2px solid #f1f1f1',
+                                                },
+                                                '&::-webkit-scrollbar-thumb:hover': {
+                                                    background: '#a8a8a8',
+                                                },
+                                                // Firefox scrollbar styling
+                                                scrollbarWidth: 'thin',
+                                                scrollbarColor: '#c1c1c1 #f1f1f1',
+                                                // Ensure the text wraps properly
+                                                whiteSpace: 'pre-wrap',
+                                                wordBreak: 'break-word',
                                             }
                                         }
                                     }}
+                                    InputProps={{
+                                        style: {
+                                            color: '#2d3748',
+                                            backgroundColor: 'transparent'
+                                        }
+                                    }}
                                 />
+                                {/* Optional: Add a scroll indicator */}
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        backgroundColor: 'rgba(0,0,0,0.7)',
+                                        color: 'white',
+                                        px: 1,
+                                        py: 0.5,
+                                        borderRadius: 1,
+                                        fontSize: '0.75rem',
+                                        fontFamily: 'monospace',
+                                        pointerEvents: 'none',
+                                        opacity: 0.8
+                                    }}
+                                >
+                                    {scriptOutput.split('\n').length} lines
+                                </Box>
                             </Paper>
 
                             {/* Metadata Section */}
