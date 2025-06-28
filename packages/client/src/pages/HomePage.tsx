@@ -16,9 +16,6 @@ import {
     CardContent,
     CardHeader,
     Fade,
-    ThemeProvider,
-    createTheme,
-    CssBaseline,
     LinearProgress,
     Tooltip,
     FormControlLabel,
@@ -67,64 +64,7 @@ import {
     getAllPackageManagers,
     getAllNodeVersions,
 } from '@mono-forge/types';
-
-// Theme configuration
-const theme = createTheme({
-    palette: {
-        primary: { main: '#4a6da7' },
-        secondary: { main: '#bb4d00' },
-        background: { default: '#f7f9fc' },
-    },
-    typography: {
-        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-        h4: { fontWeight: 700 },
-        h6: { fontWeight: 600 },
-    },
-    shape: { borderRadius: 8 },
-    components: {
-        MuiButton: {
-            styleOverrides: {
-                root: {
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    padding: '10px 24px',
-                },
-            },
-        },
-        MuiCard: {
-            styleOverrides: {
-                root: { boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' },
-            },
-        },
-    },
-});
-
-// Environment configuration interface
-interface EnvironmentConfig {
-    CLIENT_PORT: string;
-    SERVER_PORT: string;
-    API_URL: string;
-    apiEndpoint: string;
-}
-
-// Environment configuration
-const getEnvironmentConfig = (): EnvironmentConfig => {
-    const CLIENT_PORT = process.env.REACT_APP_CLIENT_PORT || '3000';
-    const SERVER_PORT = process.env.REACT_APP_SERVER_PORT || '5000';
-    const API_URL = process.env.REACT_APP_API_URL || `http://localhost:${SERVER_PORT}/api`;
-    const apiEndpoint = `${API_URL}/generatescript`;
-
-    // Log environment configuration in development
-    if (process.env.NODE_ENV === 'development') {
-        console.log('Environment Configuration:');
-        console.log(`- REACT_APP_CLIENT_PORT: ${CLIENT_PORT}`);
-        console.log(`- REACT_APP_SERVER_PORT: ${SERVER_PORT}`);
-        console.log(`- API URL: ${API_URL}`);
-        console.log(`- API Endpoint: ${apiEndpoint}`);
-    }
-
-    return { CLIENT_PORT, SERVER_PORT, API_URL, apiEndpoint };
-};
+import { getEnvironmentConfig, EnvironmentConfig } from '../App';
 
 // Enhanced integration info with icon
 interface IntegrationWithIcon extends IntegrationInfo {
@@ -1125,49 +1065,46 @@ const HomePage: React.FC = () => {
     );
 
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Box
-                sx={{
-                    minHeight: '100vh',
-                    py: 6,
-                    backgroundColor: 'background.default'
-                }}
-            >
-                <Container maxWidth="lg">
-                    {renderHeaderSection()}
+        <Box
+            sx={{
+                minHeight: '100vh',
+                py: 6,
+                backgroundColor: 'background.default'
+            }}
+        >
+            <Container maxWidth="lg">
+                {renderHeaderSection()}
 
-                    <SectionDivider icon={<PlayArrowIcon />} title="Configuration Wizard" />
+                <SectionDivider icon={<PlayArrowIcon />} title="Configuration Wizard" />
 
-                    <ConfigurationProgress />
+                <ConfigurationProgress />
 
-                    {renderBasicConfigSection()}
+                {renderBasicConfigSection()}
 
-                    <SectionDivider />
+                <SectionDivider />
 
-                    {renderIntegrationsSection()}
+                {renderIntegrationsSection()}
 
-                    <SectionDivider />
+                <SectionDivider />
 
-                    {renderAdvancedSection()}
+                {renderAdvancedSection()}
 
-                    <SectionDivider />
+                <SectionDivider />
 
-                    {renderGenerateButton()}
+                {renderGenerateButton()}
 
-                    {renderErrorMessage()}
-                    {renderLoadingIndicator()}
+                {renderErrorMessage()}
+                {renderLoadingIndicator()}
 
-                    {formSubmitted && (
-                        <>
-                            <SectionDivider icon={<CheckCircleOutlineIcon />} title="Generated Script" />
-                            {renderScriptOutput()}
-                        </>
-                    )}
+                {formSubmitted && (
+                    <>
+                        <SectionDivider icon={<CheckCircleOutlineIcon />} title="Generated Script" />
+                        {renderScriptOutput()}
+                    </>
+                )}
 
-                    {renderFooter()}
-                </Container>
-            </Box>
+                {renderFooter()}
+            </Container>
 
             <Snackbar
                 open={snackbarOpen}
@@ -1184,7 +1121,7 @@ const HomePage: React.FC = () => {
                     {snackbarMessage}
                 </Alert>
             </Snackbar>
-        </ThemeProvider>
+        </Box>
     );
 };
 
