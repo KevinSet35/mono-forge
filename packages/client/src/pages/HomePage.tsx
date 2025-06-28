@@ -31,6 +31,11 @@ import {
     Switch,
     Radio,
     RadioGroup,
+    Breadcrumbs,
+    Link,
+    Step,
+    StepLabel,
+    Stepper,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CodeIcon from '@mui/icons-material/Code';
@@ -42,6 +47,11 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import BuildIcon from '@mui/icons-material/Build';
+import ExtensionIcon from '@mui/icons-material/Extension';
+import TuneIcon from '@mui/icons-material/Tune';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
@@ -161,6 +171,9 @@ const HomePage: React.FC = () => {
     const [packageManager, setPackageManager] = useState<PackageManagerType>('npm');
     const [nodeVersion, setNodeVersion] = useState<NodeVersionType>('18.x');
 
+    // Configuration progress tracking
+    const [currentStep, setCurrentStep] = useState(0);
+
     // Get integration data from the library
     const availableIntegrations = getAllIntegrations().map(integration => ({
         ...integration,
@@ -179,6 +192,27 @@ const HomePage: React.FC = () => {
             items: availableIntegrations.filter(integration => integration.category === categoryId)
         })),
         [availableIntegrations]);
+
+    // Configuration steps for breadcrumb navigation
+    const configurationSteps = [
+        { label: 'Project Setup', icon: <CodeIcon />, completed: isValid && projectName },
+        { label: 'Integrations', icon: <ExtensionIcon />, completed: selectedIntegrations.length > 0 },
+        { label: 'Advanced Options', icon: <TuneIcon />, completed: true },
+        { label: 'Generate', icon: <BuildIcon />, completed: formSubmitted }
+    ];
+
+    // Update current step based on form state
+    useEffect(() => {
+        if (formSubmitted) {
+            setCurrentStep(3);  // Generate
+        } else if (advancedMode) {
+            setCurrentStep(2);  // Advanced Options
+        } else if (isValid && projectName && selectedIntegrations.length > 0) {
+            setCurrentStep(1);  // Integrations (only when project is ready AND integrations exist)
+        } else {
+            setCurrentStep(0);  // Project Setup (default and when working on project name)
+        }
+    }, [isValid, projectName, selectedIntegrations, advancedMode, formSubmitted]);
 
     // Validate project name when it changes
     useEffect(() => {
@@ -245,7 +279,6 @@ const HomePage: React.FC = () => {
         setSnackbarOpen(true);
     };
 
-    // Update the handleCloseSnackbar function:
     const handleCloseSnackbar = () => {
         setSnackbarOpen(false);
         setSnackbarMessage('');
@@ -333,6 +366,62 @@ const HomePage: React.FC = () => {
         setResponseMetadata(null);
     };
 
+    // Visual separator component
+    const SectionDivider: React.FC<{ icon?: React.ReactElement; title?: string }> = ({ icon, title }) => (
+        <Box sx={{ my: 4 }}>
+            <Divider sx={{
+                borderColor: 'primary.light',
+                '&::before, &::after': {
+                    borderColor: 'primary.light',
+                }
+            }}>
+                {(icon || title) && (
+                    <Chip
+                        {...(icon && { icon })}
+                        label={title}
+                        sx={{
+                            bgcolor: 'background.paper',
+                            color: 'primary.main',
+                            fontWeight: 600,
+                            px: 2,
+                            border: '1px solid',
+                            borderColor: 'primary.light'
+                        }}
+                    />
+                )}
+            </Divider>
+        </Box>
+    );
+
+    // Progress indicator component
+    const ConfigurationProgress: React.FC = () => (
+        <Box sx={{ mb: 4 }}>
+            <Paper sx={{ p: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main', fontWeight: 600 }}>
+                    Configuration Progress
+                </Typography>
+
+                <Stepper activeStep={currentStep} alternativeLabel sx={{ mb: 2 }}>
+                    {configurationSteps.map((step, index) => (
+                        <Step key={step.label} completed={Boolean(step.completed)}>
+                            <StepLabel
+                                icon={step.completed ? <CheckCircleOutlineIcon color="success" /> : step.icon}
+                                sx={{
+                                    '& .MuiStepLabel-label': {
+                                        fontSize: '0.875rem',
+                                        fontWeight: step.completed ? 600 : 400
+                                    }
+                                }}
+                            >
+                                {step.label}
+                            </StepLabel>
+                        </Step>
+                    ))}
+                </Stepper>
+            </Paper>
+        </Box>
+    );
+
     // Render functions
     const renderProjectNameField = () => (
         <TextField
@@ -394,7 +483,8 @@ const HomePage: React.FC = () => {
                     cursor: 'pointer',
                     '&:hover': {
                         borderColor: category.color,
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+                        transform: 'translateY(-1px)'
                     }
                 }}
                 onClick={() => handleIntegrationToggle(integration.id as IntegrationType)}
@@ -450,49 +540,60 @@ const HomePage: React.FC = () => {
     const renderAdvancedOptions = () => (
         <Fade in={true}>
             <Box sx={{
-                p: 2,
+                p: 3,
                 backgroundColor: 'rgba(74, 109, 167, 0.05)',
-                borderRadius: 1,
+                borderRadius: 2,
                 border: '1px solid rgba(74, 109, 167, 0.15)'
             }}>
-                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-                    Package Manager
-                </Typography>
-                <RadioGroup
-                    row
-                    value={packageManager}
-                    onChange={(e) => setPackageManager(e.target.value as PackageManagerType)}
-                    name="package-manager-radio-group"
-                    sx={{ mb: 3 }}
-                >
-                    {packageManagers.map((pm) => (
-                        <FormControlLabel
-                            key={pm.id}
-                            value={pm.id}
-                            control={<Radio />}
-                            label={pm.name}
-                        />
-                    ))}
-                </RadioGroup>
+                <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        Package Manager
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Choose your preferred package manager for dependency management
+                    </Typography>
+                    <RadioGroup
+                        row
+                        value={packageManager}
+                        onChange={(e) => setPackageManager(e.target.value as PackageManagerType)}
+                        name="package-manager-radio-group"
+                    >
+                        {packageManagers.map((pm) => (
+                            <FormControlLabel
+                                key={pm.id}
+                                value={pm.id}
+                                control={<Radio />}
+                                label={pm.name}
+                            />
+                        ))}
+                    </RadioGroup>
+                </Box>
 
-                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>
-                    Node Version
-                </Typography>
-                <RadioGroup
-                    row
-                    value={nodeVersion}
-                    onChange={(e) => setNodeVersion(e.target.value as NodeVersionType)}
-                    name="node-version-radio-group"
-                >
-                    {nodeVersions.map((nv) => (
-                        <FormControlLabel
-                            key={nv.id}
-                            value={nv.id}
-                            control={<Radio />}
-                            label={nv.name}
-                        />
-                    ))}
-                </RadioGroup>
+                <Divider sx={{ my: 3, borderColor: 'rgba(74, 109, 167, 0.2)' }} />
+
+                <Box>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        Node.js Version
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Select the Node.js version for your project
+                    </Typography>
+                    <RadioGroup
+                        row
+                        value={nodeVersion}
+                        onChange={(e) => setNodeVersion(e.target.value as NodeVersionType)}
+                        name="node-version-radio-group"
+                    >
+                        {nodeVersions.map((nv) => (
+                            <FormControlLabel
+                                key={nv.id}
+                                value={nv.id}
+                                control={<Radio />}
+                                label={nv.name}
+                            />
+                        ))}
+                    </RadioGroup>
+                </Box>
             </Box>
         </Fade>
     );
@@ -521,177 +622,273 @@ const HomePage: React.FC = () => {
 
     const renderMetadataSection = () => (
         responseMetadata && (
-            <Box mt={2} p={2} sx={{ backgroundColor: 'rgba(74, 109, 167, 0.05)', borderRadius: 1 }}>
-                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    Generation Details
+            <Box mt={3} p={3} sx={{
+                backgroundColor: 'rgba(74, 109, 167, 0.05)',
+                borderRadius: 2,
+                border: '1px solid rgba(74, 109, 167, 0.15)'
+            }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    📊 Generation Details
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                    <Typography variant="body2" color="text.secondary">
-                        <strong>Generated:</strong> {new Date(responseMetadata.generatedAt).toLocaleString()}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        <strong>Script Size:</strong> {responseMetadata.scriptLength} characters
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        <strong>Integrations:</strong> {responseMetadata.integrationsCount}
-                    </Typography>
-                </Box>
+                <Grid container spacing={3}>
+                    <Grid sx={{ gridColumn: { xs: 'span 12', sm: 'span 4' } }}>
+                        <Typography variant="body2" color="text.secondary">
+                            <strong>Generated:</strong><br />
+                            {new Date(responseMetadata.generatedAt).toLocaleString()}
+                        </Typography>
+                    </Grid>
+                    <Grid sx={{ gridColumn: { xs: 'span 12', sm: 'span 4' } }}>
+                        <Typography variant="body2" color="text.secondary">
+                            <strong>Script Size:</strong><br />
+                            {responseMetadata.scriptLength} characters
+                        </Typography>
+                    </Grid>
+                    <Grid sx={{ gridColumn: { xs: 'span 12', sm: 'span 4' } }}>
+                        <Typography variant="body2" color="text.secondary">
+                            <strong>Integrations:</strong><br />
+                            {responseMetadata.integrationsCount} selected
+                        </Typography>
+                    </Grid>
+                </Grid>
             </Box>
         )
     );
 
     const renderInstructions = () => (
-        <Box mt={3} p={2.5} sx={{ backgroundColor: 'rgba(74, 109, 167, 0.05)', borderRadius: 1, border: '1px solid rgba(74, 109, 167, 0.15)' }}>
-            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main', display: 'flex', alignItems: 'center' }}>
-                <TerminalIcon sx={{ fontSize: 20, mr: 1 }} />
+        <Box mt={4} p={3} sx={{
+            backgroundColor: 'rgba(74, 109, 167, 0.05)',
+            borderRadius: 2,
+            border: '1px solid rgba(74, 109, 167, 0.15)'
+        }}>
+            <Typography variant="h6" gutterBottom sx={{
+                fontWeight: 600,
+                color: 'primary.main',
+                display: 'flex',
+                alignItems: 'center',
+                mb: 3
+            }}>
+                <TerminalIcon sx={{ fontSize: 24, mr: 1 }} />
                 How to Use This Script
             </Typography>
 
-            <Box component="ol" sx={{ pl: 2, mb: 0 }}>
-                <Box component="li" sx={{ mb: 1 }}>
-                    <Typography variant="body2">
-                        <strong>Save the script</strong> to a file with a <code>.sh</code> extension, e.g., <code>{projectName}-setup.sh</code>
+            <Box component="ol" sx={{ pl: 2, mb: 0, '& li': { mb: 2 } }}>
+                <Box component="li">
+                    <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+                        Save the script
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Save to a file with a <code>.sh</code> extension, e.g., <code>{projectName}-setup.sh</code>
                     </Typography>
                 </Box>
 
-                <Box component="li" sx={{ mb: 1 }}>
-                    <Typography variant="body2">
-                        <strong>Make the script executable</strong> by running the following command in your terminal:
+                <Box component="li">
+                    <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+                        Make executable
                     </Typography>
-                    <Paper sx={{ p: 1, my: 1, backgroundColor: '#2d333b', borderRadius: 1 }}>
-                        <Typography variant="body2" sx={{ fontFamily: 'Consolas, Monaco, monospace', color: '#e6edf3' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Run the following command in your terminal:
+                    </Typography>
+                    <Paper sx={{ p: 2, backgroundColor: '#2d333b', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{
+                            fontFamily: 'Consolas, Monaco, monospace',
+                            color: '#e6edf3'
+                        }}>
                             chmod +x {projectName}-setup.sh
                         </Typography>
                     </Paper>
                 </Box>
 
                 <Box component="li">
-                    <Typography variant="body2">
-                        <strong>Execute the script</strong> using:
+                    <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+                        Execute the script
                     </Typography>
-                    <Paper sx={{ p: 1, my: 1, backgroundColor: '#2d333b', borderRadius: 1 }}>
-                        <Typography variant="body2" sx={{ fontFamily: 'Consolas, Monaco, monospace', color: '#e6edf3' }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Run the script using:
+                    </Typography>
+                    <Paper sx={{ p: 2, backgroundColor: '#2d333b', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{
+                            fontFamily: 'Consolas, Monaco, monospace',
+                            color: '#e6edf3'
+                        }}>
                             ./{projectName}-setup.sh
                         </Typography>
                     </Paper>
                 </Box>
             </Box>
 
-            <Box mt={2} px={2} py={1.5} sx={{ backgroundColor: 'rgba(255, 248, 230, 0.7)', borderRadius: 1, border: '1px solid rgba(255, 204, 0, 0.3)' }}>
-                <Typography variant="body2" sx={{ color: 'rgba(122, 90, 0, 0.9)', display: 'flex', alignItems: 'center' }}>
-                    <ErrorOutlineIcon sx={{ fontSize: 16, mr: 1, color: 'rgba(200, 150, 0, 0.9)' }} />
+            <Alert severity="warning" sx={{ mt: 3 }}>
+                <Typography variant="body2">
                     Always review script contents before execution, especially when working with system configurations.
                 </Typography>
-            </Box>
+            </Alert>
         </Box>
     );
 
     const renderHeaderSection = () => (
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <TerminalIcon sx={{ fontSize: 40, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h4" component="h1" gutterBottom>
+            <TerminalIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
                 MonoForge Script Generator
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '600px', mx: 'auto' }}>
+            <Typography variant="h6" color="text.secondary" sx={{ maxWidth: '600px', mx: 'auto', fontWeight: 400 }}>
                 Generate custom bash scripts for your development projects with pre-configured integrations and tools.
             </Typography>
         </Box>
     );
 
     const renderBasicConfigSection = () => (
-        <Box sx={{ mb: 3, p: 3, backgroundColor: 'background.paper', borderRadius: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
-                Basic Configuration
-            </Typography>
-            <form onSubmit={handleSubmit}>
-                <Box mb={1}>
-                    {renderProjectNameField()}
+        <Paper sx={{
+            mb: 4,
+            p: 4,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider'
+        }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <CodeIcon sx={{ fontSize: 28, color: 'primary.main', mr: 2 }} />
+                <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        Project Configuration
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Start by naming your project
+                    </Typography>
                 </Box>
+            </Box>
+            <form onSubmit={handleSubmit}>
+                {renderProjectNameField()}
             </form>
-        </Box>
+        </Paper>
     );
 
     const renderIntegrationsSection = () => (
-        <Accordion
-            expanded={expandedSection === 'integrations'}
-            onChange={handleAccordionChange('integrations')}
-            elevation={0}
-            sx={{ mb: 2 }}
-        >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                        Integrations & Tools
+        <Paper sx={{
+            mb: 4,
+            p: 4,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider'
+        }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <ExtensionIcon sx={{ fontSize: 28, color: 'primary.main', mr: 2 }} />
+                <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        Choose Your Integrations
                     </Typography>
-                    <Chip
-                        label={`${getSelectedIntegrationsCount()} selected`}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                    />
+                    <Typography variant="body2" color="text.secondary">
+                        Select the tools and frameworks you want to include
+                    </Typography>
                 </Box>
-            </AccordionSummary>
-            <AccordionDetails>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                    Select the integrations and tools you want to include in your project setup script.
-                </Typography>
+                <Chip
+                    label={`${getSelectedIntegrationsCount()} selected`}
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 600 }}
+                />
+            </Box>
 
-                {groupedIntegrations.map(category => renderIntegrationCategory(category))}
-            </AccordionDetails>
-        </Accordion>
+            {groupedIntegrations.map(category => renderIntegrationCategory(category))}
+        </Paper>
     );
 
     const renderAdvancedSection = () => (
-        <Accordion
-            expanded={expandedSection === 'advanced'}
-            onChange={handleAccordionChange('advanced')}
-            elevation={0}
-            sx={{ mb: 3 }}
-        >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    Advanced Options
-                </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-                <Box sx={{ mb: 2 }}>
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={advancedMode}
-                                onChange={(e) => setAdvancedMode(e.target.checked)}
-                                color="primary"
-                            />
-                        }
-                        label="Enable Advanced Configuration"
-                    />
+        <Paper sx={{
+            mb: 4,
+            p: 4,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider'
+        }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <TuneIcon sx={{ fontSize: 28, color: 'primary.main', mr: 2 }} />
+                <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        Advanced Configuration
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Fine-tune your project settings
+                    </Typography>
                 </Box>
+            </Box>
 
-                {advancedMode && renderAdvancedOptions()}
-            </AccordionDetails>
-        </Accordion>
+            <Box sx={{ mb: 3 }}>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={advancedMode}
+                            onChange={(e) => setAdvancedMode(e.target.checked)}
+                            color="primary"
+                        />
+                    }
+                    label={
+                        <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                Enable Advanced Options
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Configure package manager and Node.js version
+                            </Typography>
+                        </Box>
+                    }
+                />
+            </Box>
+
+            {advancedMode && renderAdvancedOptions()}
+        </Paper>
     );
 
     const renderGenerateButton = () => (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+        <Paper sx={{
+            p: 4,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            textAlign: 'center'
+        }}>
+            <Box sx={{ mb: 3 }}>
+                <BuildIcon sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
+                <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main', mb: 1 }}>
+                    Ready to Generate
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                    Review your configuration and generate your custom script
+                </Typography>
+            </Box>
+
+            <Box sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                    Project: <strong>{projectName || 'Not set'}</strong> •
+                    Integrations: <strong>{selectedIntegrations.length}</strong> •
+                    Package Manager: <strong>{packageManager}</strong>
+                </Typography>
+            </Box>
+
             <Button
                 variant="contained"
+                size="large"
                 disabled={loading || !isValid || !projectName}
                 disableElevation
                 onClick={handleSubmit}
+                startIcon={loading ? null : <PlayArrowIcon />}
                 sx={{
                     py: 1.5,
-                    px: 4,
+                    px: 6,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
                     transition: 'all 0.2s',
                     '&:hover': {
                         transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 20px rgba(74, 109, 167, 0.2)'
+                        boxShadow: '0 8px 25px rgba(74, 109, 167, 0.3)'
                     }
                 }}
             >
-                {loading ? 'Generating...' : 'Generate Script'}
+                {loading ? 'Generating Your Script...' : 'Generate Script'}
             </Button>
-        </Box>
+        </Paper>
     );
 
     const renderErrorMessage = () => (
@@ -728,15 +925,21 @@ const HomePage: React.FC = () => {
         formSubmitted && scriptOutput && (
             <Box mb={4}>
                 <Fade in={true} timeout={800}>
-                    <Card elevation={0}>
+                    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                         <CardHeader
-                            title="Generated Script"
+                            title={
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <CheckCircleOutlineIcon sx={{ color: 'success.main', mr: 1 }} />
+                                    Generated Script
+                                </Box>
+                            }
                             subheader={`Script for project: ${projectName} with ${getSelectedIntegrationsCount()} integrations`}
                             sx={{
-                                pb: 0,
+                                pb: 2,
                                 '& .MuiCardHeader-title': {
-                                    fontSize: '1.25rem',
-                                    color: 'primary.main'
+                                    fontSize: '1.5rem',
+                                    color: 'primary.main',
+                                    fontWeight: 600
                                 }
                             }}
                             action={
@@ -766,14 +969,13 @@ const HomePage: React.FC = () => {
                             <Paper
                                 variant="outlined"
                                 sx={{
-                                    borderRadius: 1,
+                                    borderRadius: 2,
                                     backgroundColor: '#f8f9fa',
                                     border: '1px solid #e0e0e0',
                                     position: 'relative',
                                     overflow: 'hidden'
                                 }}
                             >
-                                {/* Enhanced Syntax Highlighter */}
                                 <Box sx={{ position: 'relative' }}>
                                     <SyntaxHighlighter
                                         language="bash"
@@ -785,9 +987,8 @@ const HomePage: React.FC = () => {
                                             fontFamily: 'Consolas, Monaco, "Courier New", monospace',
                                             maxHeight: '500px',
                                             overflow: 'auto',
-                                            backgroundColor: '#1e1e1e', // Dark theme
+                                            backgroundColor: '#1e1e1e',
                                             borderRadius: '8px',
-                                            // Custom scrollbar for the syntax highlighter
                                             scrollbarWidth: 'thin',
                                             scrollbarColor: '#555 #2d2d2d',
                                         }}
@@ -810,7 +1011,6 @@ const HomePage: React.FC = () => {
                                         {scriptOutput}
                                     </SyntaxHighlighter>
 
-                                    {/* Line count indicator */}
                                     <Box
                                         sx={{
                                             position: 'absolute',
@@ -833,13 +1033,15 @@ const HomePage: React.FC = () => {
                                 </Box>
                             </Paper>
 
-                            {/* Metadata Section */}
                             {renderMetadataSection()}
 
-                            {/* Included Integrations Summary */}
-                            <Box mt={3} mb={2}>
-                                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-                                    Included Integrations
+                            <Box mt={4} p={3} sx={{
+                                backgroundColor: 'rgba(74, 109, 167, 0.05)',
+                                borderRadius: 2,
+                                border: '1px solid rgba(74, 109, 167, 0.15)'
+                            }}>
+                                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                    🧩 Included Integrations
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                                     {selectedIntegrations.map(id => renderIntegrationChip(id))}
@@ -855,16 +1057,18 @@ const HomePage: React.FC = () => {
     );
 
     const renderFooter = () => (
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="body2" color="text.secondary">
-                © 2025 MonoForge - A modern scripting tool for developers
-            </Typography>
-            {process.env.NODE_ENV === 'development' && (
-                <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>
-                    Client: localhost:{CLIENT_PORT} | Server: localhost:{SERVER_PORT} | Environment: {process.env.NODE_ENV}
+        <Box sx={{ mt: 6 }}>
+            <SectionDivider />
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    © 2025 MonoForge - A modern scripting tool for developers
                 </Typography>
-            )}
+                {process.env.NODE_ENV === 'development' && (
+                    <Typography variant="caption" color="text.disabled">
+                        Client: localhost:{CLIENT_PORT} | Server: localhost:{SERVER_PORT} | Environment: {process.env.NODE_ENV}
+                    </Typography>
+                )}
+            </Box>
         </Box>
     );
 
@@ -878,19 +1082,37 @@ const HomePage: React.FC = () => {
                     backgroundColor: 'background.default'
                 }}
             >
-                <Container maxWidth="md">
+                <Container maxWidth="lg">
                     {renderHeaderSection()}
 
-                    <Box mb={4}>
-                        {renderBasicConfigSection()}
-                        {renderIntegrationsSection()}
-                        {renderAdvancedSection()}
-                        {renderGenerateButton()}
-                    </Box>
+                    <SectionDivider icon={<PlayArrowIcon />} title="Configuration Wizard" />
+
+                    <ConfigurationProgress />
+
+                    {renderBasicConfigSection()}
+
+                    <SectionDivider />
+
+                    {renderIntegrationsSection()}
+
+                    <SectionDivider />
+
+                    {renderAdvancedSection()}
+
+                    <SectionDivider />
+
+                    {renderGenerateButton()}
 
                     {renderErrorMessage()}
                     {renderLoadingIndicator()}
-                    {renderScriptOutput()}
+
+                    {formSubmitted && (
+                        <>
+                            <SectionDivider icon={<CheckCircleOutlineIcon />} title="Generated Script" />
+                            {renderScriptOutput()}
+                        </>
+                    )}
+
                     {renderFooter()}
                 </Container>
             </Box>
