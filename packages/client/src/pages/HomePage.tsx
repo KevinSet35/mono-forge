@@ -60,10 +60,16 @@ import {
     PackageManagerType,
     NodeVersionType,
     ScriptGeneratorSchema,
+    ScriptGeneratorInput,
     ApiResponse,
     ResponseStatus,
     ScriptGenerationData,
+    ResponseMetadata,
+    IntegrationInfo,
+    PackageManagerInfo,
+    NodeVersionInfo,
     INTEGRATION_CATEGORIES,
+    IntegrationCategory,
     getAllIntegrations,
     getAllPackageManagers,
     getAllNodeVersions,
@@ -100,8 +106,16 @@ const theme = createTheme({
     },
 });
 
+// Environment configuration interface
+interface EnvironmentConfig {
+    CLIENT_PORT: string;
+    SERVER_PORT: string;
+    API_URL: string;
+    apiEndpoint: string;
+}
+
 // Environment configuration
-const getEnvironmentConfig = () => {
+const getEnvironmentConfig = (): EnvironmentConfig => {
     const CLIENT_PORT = process.env.REACT_APP_CLIENT_PORT || '3000';
     const SERVER_PORT = process.env.REACT_APP_SERVER_PORT || '5000';
     const API_URL = process.env.REACT_APP_API_URL || `http://localhost:${SERVER_PORT}/api`;
@@ -119,8 +133,28 @@ const getEnvironmentConfig = () => {
     return { CLIENT_PORT, SERVER_PORT, API_URL, apiEndpoint };
 };
 
+// Enhanced integration info with icon
+interface IntegrationWithIcon extends IntegrationInfo {
+    icon: React.ReactElement;
+}
+
+// Configuration step interface
+interface ConfigurationStep {
+    label: string;
+    icon: React.ReactElement;
+    completed: boolean;
+}
+
+// Category with items interface
+interface CategoryWithItems {
+    id: string;
+    name: string;
+    color: string;
+    items: IntegrationWithIcon[];
+}
+
 // Icon mapping for integrations
-const getIntegrationIcon = (integrationId: IntegrationType) => {
+const getIntegrationIcon = (integrationId: IntegrationType): React.ReactElement => {
     const iconMap: Record<IntegrationType, React.ReactElement> = {
         git: <GitHubIcon />,
         supabase: <StorageIcon />,
@@ -148,54 +182,54 @@ interface ErrorApiResponse extends ApiResponse<null> {
 
 const HomePage: React.FC = () => {
     // Environment configuration
-    const { CLIENT_PORT, SERVER_PORT, apiEndpoint } = getEnvironmentConfig();
+    const { CLIENT_PORT, SERVER_PORT, apiEndpoint }: EnvironmentConfig = getEnvironmentConfig();
 
     // Form state
-    const [projectName, setProjectName] = useState('');
-    const [scriptOutput, setScriptOutput] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [projectName, setProjectName] = useState<string>('');
+    const [scriptOutput, setScriptOutput] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [isValid, setIsValid] = useState(false);
-    const [snackbarOpen, setSnackbarOpen] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [formSubmitted, setFormSubmitted] = useState(false);
+    const [isValid, setIsValid] = useState<boolean>(false);
+    const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+    const [snackbarMessage, setSnackbarMessage] = useState<string>('');
+    const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [selectedIntegrations, setSelectedIntegrations] = useState<IntegrationType[]>(['typescript']);
     const [expandedSection, setExpandedSection] = useState<string | false>('main');
-    const [advancedMode, setAdvancedMode] = useState(false);
+    const [advancedMode, setAdvancedMode] = useState<boolean>(false);
 
     // New state for response metadata
-    const [responseMetadata, setResponseMetadata] = useState<any>(null);
+    const [responseMetadata, setResponseMetadata] = useState<ResponseMetadata | null>(null);
 
     // Advanced configuration state
     const [packageManager, setPackageManager] = useState<PackageManagerType>('npm');
     const [nodeVersion, setNodeVersion] = useState<NodeVersionType>('18.x');
 
     // Configuration progress tracking
-    const [currentStep, setCurrentStep] = useState(0);
+    const [currentStep, setCurrentStep] = useState<number>(0);
 
     // Get integration data from the library
-    const availableIntegrations = getAllIntegrations().map(integration => ({
+    const availableIntegrations: IntegrationWithIcon[] = getAllIntegrations().map((integration: IntegrationInfo) => ({
         ...integration,
         icon: getIntegrationIcon(integration.id as IntegrationType)
     }));
 
     // Get package managers and node versions from the library
-    const packageManagers = getAllPackageManagers();
-    const nodeVersions = getAllNodeVersions();
+    const packageManagers: PackageManagerInfo[] = getAllPackageManagers();
+    const nodeVersions: NodeVersionInfo[] = getAllNodeVersions();
 
     // Group integrations by category for display
-    const groupedIntegrations = React.useMemo(() =>
+    const groupedIntegrations: CategoryWithItems[] = React.useMemo(() =>
         Object.entries(INTEGRATION_CATEGORIES).map(([categoryId, category]) => ({
             ...category,
             id: categoryId,
-            items: availableIntegrations.filter(integration => integration.category === categoryId)
+            items: availableIntegrations.filter((integration: IntegrationWithIcon) => integration.category === categoryId)
         })),
         [availableIntegrations]);
 
     // Configuration steps for breadcrumb navigation
-    const configurationSteps = [
-        { label: 'Project Setup', icon: <CodeIcon />, completed: isValid && projectName },
+    const configurationSteps: ConfigurationStep[] = [
+        { label: 'Project Setup', icon: <CodeIcon />, completed: Boolean(isValid && projectName) },
         { label: 'Integrations', icon: <ExtensionIcon />, completed: selectedIntegrations.length > 0 },
         { label: 'Advanced Options', icon: <TuneIcon />, completed: true },
         { label: 'Generate', icon: <BuildIcon />, completed: formSubmitted }
@@ -220,23 +254,24 @@ const HomePage: React.FC = () => {
     }, [projectName]);
 
     // Form validation functions
-    const validateProjectName = (name: string) => {
+    const validateProjectName = (name: string): void => {
         try {
             ProjectNameSchema.parse(name);
             setIsValid(true);
             setError(null);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const zodError = err as { errors?: Array<{ message: string }> };
             setIsValid(false);
-            setError(err.errors?.[0]?.message || 'Invalid project name');
+            setError(zodError.errors?.[0]?.message || 'Invalid project name');
         }
     };
 
     // Event handlers
-    const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleProjectNameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
         setProjectName(e.target.value);
     };
 
-    const handleIntegrationToggle = (integrationId: IntegrationType) => {
+    const handleIntegrationToggle = (integrationId: IntegrationType): void => {
         setSelectedIntegrations(prev =>
             prev.includes(integrationId)
                 ? prev.filter(id => id !== integrationId)
@@ -244,17 +279,17 @@ const HomePage: React.FC = () => {
         );
     };
 
-    const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean): void => {
         setExpandedSection(isExpanded ? panel : false);
     };
 
-    const handleCopy = () => {
+    const handleCopy = (): void => {
         navigator.clipboard.writeText(scriptOutput);
         setSnackbarMessage('Script copied to clipboard successfully!');
         setSnackbarOpen(true);
     };
 
-    const handleDownload = () => {
+    const handleDownload = (): void => {
         if (!scriptOutput || !projectName) return;
 
         // Create a blob with the script content
@@ -279,17 +314,17 @@ const HomePage: React.FC = () => {
         setSnackbarOpen(true);
     };
 
-    const handleCloseSnackbar = () => {
+    const handleCloseSnackbar = (): void => {
         setSnackbarOpen(false);
         setSnackbarMessage('');
     };
 
-    const getSelectedIntegrationsCount = () => {
+    const getSelectedIntegrationsCount = (): number => {
         return selectedIntegrations.length;
     };
 
     // Form submission
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
 
         if (!isValid) return;
@@ -316,7 +351,7 @@ const HomePage: React.FC = () => {
                 const errorResponse = apiResponse as ErrorApiResponse;
                 throw new Error(errorResponse.error?.message || 'Failed to generate script');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             handleSubmissionError(err);
         } finally {
             setLoading(false);
@@ -324,7 +359,7 @@ const HomePage: React.FC = () => {
     };
 
     // Helper functions for form submission
-    const prepareRequestData = () => ({
+    const prepareRequestData = (): ScriptGeneratorInput => ({
         projectName,
         integrations: selectedIntegrations,
         advancedConfig: advancedMode ? {
@@ -333,34 +368,58 @@ const HomePage: React.FC = () => {
         } : undefined
     });
 
-    const submitForm = async (validatedData: any) => {
+    const submitForm = async (validatedData: ScriptGeneratorInput) => {
         // Use the main endpoint that returns ApiResponse<ScriptGenerationData>
         return axios.post(apiEndpoint, validatedData);
     };
 
-    const handleSubmissionError = (err: any) => {
+    const handleSubmissionError = (err: unknown): void => {
         console.error('API Error:', err);
 
-        if (err.errors) {
-            // Zod validation error
-            setApiError(`Validation Error: ${err.errors[0]?.message || 'Invalid form data'}`);
-        } else if (err.response?.data) {
-            // Server response error - handle both old format and new ApiResponse format
-            const responseData = err.response.data;
+        // Type guard for axios error
+        const isAxiosError = (error: unknown): error is {
+            response?: { data: unknown };
+            message?: string;
+            errors?: Array<{ message: string }>
+        } => {
+            return typeof error === 'object' && error !== null;
+        };
 
-            if (responseData.status === ResponseStatus.ERROR && responseData.error) {
-                // New ApiResponse error format
-                setApiError(`Error: ${responseData.error.message}`);
-            } else if (responseData.message) {
-                // Legacy error format
-                setApiError(`Error: ${responseData.message}`);
+        if (isAxiosError(err)) {
+            if (err.errors) {
+                // Zod validation error
+                setApiError(`Validation Error: ${err.errors[0]?.message || 'Invalid form data'}`);
+            } else if (err.response?.data) {
+                // Server response error - handle both old format and new ApiResponse format
+                const responseData = err.response.data;
+
+                // Type guard for ApiResponse error format
+                const isApiResponseError = (data: unknown): data is ErrorApiResponse => {
+                    return typeof data === 'object' && data !== null &&
+                        'status' in data && (data as { status: string }).status === ResponseStatus.ERROR;
+                };
+
+                // Type guard for legacy error format
+                const isLegacyError = (data: unknown): data is { message: string } => {
+                    return typeof data === 'object' && data !== null && 'message' in data;
+                };
+
+                if (isApiResponseError(responseData)) {
+                    // New ApiResponse error format
+                    setApiError(`Error: ${responseData.error.message}`);
+                } else if (isLegacyError(responseData)) {
+                    // Legacy error format
+                    setApiError(`Error: ${responseData.message}`);
+                } else {
+                    setApiError('An unexpected error occurred');
+                }
             } else {
-                setApiError('An unexpected error occurred');
+                // Network or other error
+                const errorMessage = err.message || 'Failed to connect to server';
+                setApiError(`Error: ${errorMessage}`);
             }
         } else {
-            // Network or other error
-            const errorMessage = err.message || 'Failed to connect to server';
-            setApiError(`Error: ${errorMessage}`);
+            setApiError('An unexpected error occurred');
         }
         setScriptOutput('');
         setResponseMetadata(null);
@@ -402,7 +461,7 @@ const HomePage: React.FC = () => {
                 </Typography>
 
                 <Stepper activeStep={currentStep} alternativeLabel sx={{ mb: 2 }}>
-                    {configurationSteps.map((step, index) => (
+                    {configurationSteps.map((step: ConfigurationStep, index: number) => (
                         <Step key={step.label} completed={Boolean(step.completed)}>
                             <StepLabel
                                 icon={step.completed ? <CheckCircleOutlineIcon color="success" /> : step.icon}
@@ -423,7 +482,7 @@ const HomePage: React.FC = () => {
     );
 
     // Render functions
-    const renderProjectNameField = () => (
+    const renderProjectNameField = (): React.ReactElement => (
         <TextField
             label="Project Name"
             variant="outlined"
@@ -466,7 +525,7 @@ const HomePage: React.FC = () => {
         />
     );
 
-    const renderIntegrationItem = (integration: typeof availableIntegrations[0], category: any) => (
+    const renderIntegrationItem = (integration: IntegrationWithIcon, category: CategoryWithItems): React.ReactElement => (
         <Grid key={integration.id} sx={{ gridColumn: { xs: 'span 12', sm: 'span 6' } }}>
             <Paper
                 variant="outlined"
@@ -517,7 +576,7 @@ const HomePage: React.FC = () => {
         </Grid>
     );
 
-    const renderIntegrationCategory = (category: any) => (
+    const renderIntegrationCategory = (category: CategoryWithItems): React.ReactElement => (
         <Box key={category.id} sx={{ mb: 3 }}>
             <Typography
                 variant="subtitle1"
@@ -532,12 +591,12 @@ const HomePage: React.FC = () => {
                 {category.name}
             </Typography>
             <Grid container spacing={2}>
-                {category.items.map((integration: any) => renderIntegrationItem(integration, category))}
+                {category.items.map((integration: IntegrationWithIcon) => renderIntegrationItem(integration, category))}
             </Grid>
         </Box>
     );
 
-    const renderAdvancedOptions = () => (
+    const renderAdvancedOptions = (): React.ReactElement => (
         <Fade in={true}>
             <Box sx={{
                 p: 3,
@@ -558,7 +617,7 @@ const HomePage: React.FC = () => {
                         onChange={(e) => setPackageManager(e.target.value as PackageManagerType)}
                         name="package-manager-radio-group"
                     >
-                        {packageManagers.map((pm) => (
+                        {packageManagers.map((pm: PackageManagerInfo) => (
                             <FormControlLabel
                                 key={pm.id}
                                 value={pm.id}
@@ -584,7 +643,7 @@ const HomePage: React.FC = () => {
                         onChange={(e) => setNodeVersion(e.target.value as NodeVersionType)}
                         name="node-version-radio-group"
                     >
-                        {nodeVersions.map((nv) => (
+                        {nodeVersions.map((nv: NodeVersionInfo) => (
                             <FormControlLabel
                                 key={nv.id}
                                 value={nv.id}
@@ -598,11 +657,11 @@ const HomePage: React.FC = () => {
         </Fade>
     );
 
-    const renderIntegrationChip = (id: IntegrationType) => {
-        const integration = availableIntegrations.find(i => i.id === id);
+    const renderIntegrationChip = (id: IntegrationType): React.ReactElement | null => {
+        const integration = availableIntegrations.find((i: IntegrationWithIcon) => i.id === id);
         if (!integration) return null;
 
-        const category = INTEGRATION_CATEGORIES[integration.category as keyof typeof INTEGRATION_CATEGORIES];
+        const category = INTEGRATION_CATEGORIES[integration.category as IntegrationCategory];
         return (
             <Chip
                 key={id}
@@ -620,8 +679,8 @@ const HomePage: React.FC = () => {
         );
     };
 
-    const renderMetadataSection = () => (
-        responseMetadata && (
+    const renderMetadataSection = (): React.ReactElement | null => (
+        responseMetadata ? (
             <Box mt={3} p={3} sx={{
                 backgroundColor: 'rgba(74, 109, 167, 0.05)',
                 borderRadius: 2,
@@ -651,10 +710,10 @@ const HomePage: React.FC = () => {
                     </Grid>
                 </Grid>
             </Box>
-        )
+        ) : null
     );
 
-    const renderInstructions = () => (
+    const renderInstructions = (): React.ReactElement => (
         <Box mt={4} p={3} sx={{
             backgroundColor: 'rgba(74, 109, 167, 0.05)',
             borderRadius: 2,
@@ -724,7 +783,7 @@ const HomePage: React.FC = () => {
         </Box>
     );
 
-    const renderHeaderSection = () => (
+    const renderHeaderSection = (): React.ReactElement => (
         <Box sx={{ textAlign: 'center', mb: 4 }}>
             <TerminalIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
             <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
@@ -736,7 +795,7 @@ const HomePage: React.FC = () => {
         </Box>
     );
 
-    const renderBasicConfigSection = () => (
+    const renderBasicConfigSection = (): React.ReactElement => (
         <Paper sx={{
             mb: 4,
             p: 4,
@@ -762,7 +821,7 @@ const HomePage: React.FC = () => {
         </Paper>
     );
 
-    const renderIntegrationsSection = () => (
+    const renderIntegrationsSection = (): React.ReactElement => (
         <Paper sx={{
             mb: 4,
             p: 4,
@@ -789,11 +848,11 @@ const HomePage: React.FC = () => {
                 />
             </Box>
 
-            {groupedIntegrations.map(category => renderIntegrationCategory(category))}
+            {groupedIntegrations.map((category: CategoryWithItems) => renderIntegrationCategory(category))}
         </Paper>
     );
 
-    const renderAdvancedSection = () => (
+    const renderAdvancedSection = (): React.ReactElement => (
         <Paper sx={{
             mb: 4,
             p: 4,
@@ -840,7 +899,7 @@ const HomePage: React.FC = () => {
         </Paper>
     );
 
-    const renderGenerateButton = () => (
+    const renderGenerateButton = (): React.ReactElement => (
         <Paper sx={{
             p: 4,
             backgroundColor: 'background.paper',
@@ -891,8 +950,8 @@ const HomePage: React.FC = () => {
         </Paper>
     );
 
-    const renderErrorMessage = () => (
-        apiError && (
+    const renderErrorMessage = (): React.ReactElement | null => (
+        apiError ? (
             <Box mb={4}>
                 <Alert
                     severity="error"
@@ -910,19 +969,19 @@ const HomePage: React.FC = () => {
                     </Typography>
                 </Alert>
             </Box>
-        )
+        ) : null
     );
 
-    const renderLoadingIndicator = () => (
-        loading && (
+    const renderLoadingIndicator = (): React.ReactElement | null => (
+        loading ? (
             <Box sx={{ width: '100%', mt: 2, mb: 4 }}>
                 <LinearProgress />
             </Box>
-        )
+        ) : null
     );
 
-    const renderScriptOutput = () => (
-        formSubmitted && scriptOutput && (
+    const renderScriptOutput = (): React.ReactElement | null => (
+        (formSubmitted && scriptOutput) ? (
             <Box mb={4}>
                 <Fade in={true} timeout={800}>
                     <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -1044,7 +1103,7 @@ const HomePage: React.FC = () => {
                                     🧩 Included Integrations
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                    {selectedIntegrations.map(id => renderIntegrationChip(id))}
+                                    {selectedIntegrations.map((id: IntegrationType) => renderIntegrationChip(id))}
                                 </Box>
                             </Box>
 
@@ -1053,10 +1112,10 @@ const HomePage: React.FC = () => {
                     </Card>
                 </Fade>
             </Box>
-        )
+        ) : null
     );
 
-    const renderFooter = () => (
+    const renderFooter = (): React.ReactElement => (
         <Box sx={{ mt: 6 }}>
             <SectionDivider />
             <Box sx={{ textAlign: 'center', py: 4 }}>
