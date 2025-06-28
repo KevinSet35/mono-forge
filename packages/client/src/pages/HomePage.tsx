@@ -23,16 +23,11 @@ import {
     Tooltip,
     FormControlLabel,
     Checkbox,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
     Chip,
     Grid,
     Switch,
     Radio,
     RadioGroup,
-    Breadcrumbs,
-    Link,
     Step,
     StepLabel,
     Stepper,
@@ -42,12 +37,10 @@ import CodeIcon from '@mui/icons-material/Code';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import TerminalIcon from '@mui/icons-material/Terminal';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
 import DownloadIcon from '@mui/icons-material/Download';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import BuildIcon from '@mui/icons-material/Build';
 import ExtensionIcon from '@mui/icons-material/Extension';
