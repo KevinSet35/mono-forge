@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IntegrationType, AdvancedConfigType } from '@mono-forge/types';
-import { ScriptModule } from '../interfaces/script-module.interface';
+import { ScriptModule } from '../../interfaces/script-module.interface';
 
 @Injectable()
 export class ScriptBuilderService {

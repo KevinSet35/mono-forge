@@ -286,7 +286,8 @@ export const AdvancedConfigSchema = z.object({
 export const ScriptGeneratorSchema = z.object({
     projectName: ProjectNameSchema,
     integrations: z.array(IntegrationSchema).default(["typescript"]),
-    advancedConfig: AdvancedConfigSchema.optional()
+    advancedConfig: AdvancedConfigSchema.optional(),
+    useAI: z.boolean().default(false)
 });
 
 // Data schemas for controller responses (these are the 'data' part of ApiResponse)

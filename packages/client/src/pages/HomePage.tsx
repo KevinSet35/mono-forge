@@ -138,6 +138,9 @@ const HomePage: React.FC = () => {
     const [packageManager, setPackageManager] = useState<PackageManagerType>('npm');
     const [nodeVersion, setNodeVersion] = useState<NodeVersionType>('18.x');
 
+    // AI Mode state
+    const [useAI, setUseAI] = useState<boolean>(false);
+
     // Configuration progress tracking
     const [currentStep, setCurrentStep] = useState<number>(0);
 
@@ -210,10 +213,6 @@ const HomePage: React.FC = () => {
                 ? prev.filter(id => id !== integrationId)
                 : [...prev, integrationId]
         );
-    };
-
-    const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean): void => {
-        setExpandedSection(isExpanded ? panel : false);
     };
 
     const handleCopy = (): void => {
@@ -295,6 +294,7 @@ const HomePage: React.FC = () => {
     const prepareRequestData = (): ScriptGeneratorInput => ({
         projectName,
         integrations: selectedIntegrations,
+        useAI: useAI,
         advancedConfig: advancedMode ? {
             packageManager,
             nodeVersion
@@ -472,14 +472,15 @@ const HomePage: React.FC = () => {
                         ? `${category.color}10`
                         : 'background.paper',
                     transition: 'all 0.2s',
-                    cursor: 'pointer',
-                    '&:hover': {
+                    cursor: useAI ? 'not-allowed' : 'pointer',
+                    opacity: useAI ? 0.5 : 1,
+                    '&:hover': useAI ? {} : {
                         borderColor: category.color,
                         boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
                         transform: 'translateY(-1px)'
                     }
                 }}
-                onClick={() => handleIntegrationToggle(integration.id as IntegrationType)}
+                onClick={() => !useAI && handleIntegrationToggle(integration.id as IntegrationType)}
             >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                     <Box sx={{ mr: 2, color: category.color }}>
@@ -496,6 +497,7 @@ const HomePage: React.FC = () => {
                     <Checkbox
                         checked={selectedIntegrations.includes(integration.id as IntegrationType)}
                         onChange={() => handleIntegrationToggle(integration.id as IntegrationType)}
+                        disabled={useAI}
                         sx={{
                             p: 0.5,
                             '&.Mui-checked': {
@@ -535,7 +537,9 @@ const HomePage: React.FC = () => {
                 p: 3,
                 backgroundColor: 'rgba(74, 109, 167, 0.05)',
                 borderRadius: 2,
-                border: '1px solid rgba(74, 109, 167, 0.15)'
+                border: '1px solid rgba(74, 109, 167, 0.15)',
+                opacity: useAI ? 0.5 : 1,
+                pointerEvents: useAI ? 'none' : 'auto'
             }}>
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -554,7 +558,7 @@ const HomePage: React.FC = () => {
                             <FormControlLabel
                                 key={pm.id}
                                 value={pm.id}
-                                control={<Radio />}
+                                control={<Radio disabled={useAI} />}
                                 label={pm.name}
                             />
                         ))}
@@ -580,7 +584,7 @@ const HomePage: React.FC = () => {
                             <FormControlLabel
                                 key={nv.id}
                                 value={nv.id}
-                                control={<Radio />}
+                                control={<Radio disabled={useAI} />}
                                 label={nv.name}
                             />
                         ))}
@@ -680,13 +684,36 @@ const HomePage: React.FC = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Run the following command in your terminal:
                     </Typography>
-                    <Paper sx={{ p: 2, backgroundColor: '#2d333b', borderRadius: 1 }}>
+                    <Paper sx={{ p: 2, backgroundColor: '#2d333b', borderRadius: 1, position: 'relative' }}>
                         <Typography variant="body2" sx={{
                             fontFamily: 'Consolas, Monaco, monospace',
-                            color: '#e6edf3'
+                            color: '#e6edf3',
+                            pr: 5
                         }}>
                             chmod +x {projectName}-setup.sh
                         </Typography>
+                        <Tooltip title="Copy to clipboard">
+                            <IconButton
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`chmod +x ${projectName}-setup.sh`);
+                                    setSnackbarMessage('Command copied to clipboard!');
+                                    setSnackbarOpen(true);
+                                }}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 8,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: '#e6edf3',
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }}
+                                size="small"
+                            >
+                                <ContentCopyIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
                     </Paper>
                 </Box>
 
@@ -697,13 +724,36 @@ const HomePage: React.FC = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         Run the script using:
                     </Typography>
-                    <Paper sx={{ p: 2, backgroundColor: '#2d333b', borderRadius: 1 }}>
+                    <Paper sx={{ p: 2, backgroundColor: '#2d333b', borderRadius: 1, position: 'relative' }}>
                         <Typography variant="body2" sx={{
                             fontFamily: 'Consolas, Monaco, monospace',
-                            color: '#e6edf3'
+                            color: '#e6edf3',
+                            pr: 5
                         }}>
                             ./{projectName}-setup.sh
                         </Typography>
+                        <Tooltip title="Copy to clipboard">
+                            <IconButton
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`./${projectName}-setup.sh`);
+                                    setSnackbarMessage('Command copied to clipboard!');
+                                    setSnackbarOpen(true);
+                                }}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 8,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: '#e6edf3',
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }}
+                                size="small"
+                            >
+                                <ContentCopyIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
                     </Paper>
                 </Box>
             </Box>
@@ -761,7 +811,9 @@ const HomePage: React.FC = () => {
             backgroundColor: 'background.paper',
             borderRadius: 2,
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'divider',
+            opacity: useAI ? 0.5 : 1,
+            pointerEvents: useAI ? 'none' : 'auto'
         }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <ExtensionIcon sx={{ fontSize: 28, color: 'primary.main', mr: 2 }} />
@@ -770,7 +822,7 @@ const HomePage: React.FC = () => {
                         Choose Your Integrations
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Select the tools and frameworks you want to include
+                        {useAI ? 'Disabled in AI mode' : 'Select the tools and frameworks you want to include'}
                     </Typography>
                 </Box>
                 <Chip
@@ -785,6 +837,60 @@ const HomePage: React.FC = () => {
         </Paper>
     );
 
+    const renderAIModeSection = (): React.ReactElement => (
+        <Paper sx={{
+            mb: 4,
+            p: 4,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: useAI ? 'primary.main' : 'divider',
+            boxShadow: useAI ? '0 0 20px rgba(74, 109, 167, 0.2)' : 'none',
+            transition: 'all 0.3s'
+        }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <BuildIcon sx={{ fontSize: 28, color: 'primary.main', mr: 2 }} />
+                <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        AI-Powered Generation
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Let AI generate your script automatically
+                    </Typography>
+                </Box>
+            </Box>
+
+            <FormControlLabel
+                control={
+                    <Switch
+                        checked={useAI}
+                        onChange={(e) => setUseAI(e.target.checked)}
+                        color="primary"
+                    />
+                }
+                label={
+                    <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                            Use AI Script Generation
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {useAI
+                                ? 'AI will handle all configuration automatically - manual options are disabled'
+                                : 'Enable to let AI generate your script based on project name only'}
+                        </Typography>
+                    </Box>
+                }
+            />
+
+            {useAI && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                    AI mode is enabled. All integration and configuration options are disabled.
+                    The AI will automatically determine the best setup for your project.
+                </Alert>
+            )}
+        </Paper>
+    );
+
     const renderAdvancedSection = (): React.ReactElement => (
         <Paper sx={{
             mb: 4,
@@ -792,7 +898,9 @@ const HomePage: React.FC = () => {
             backgroundColor: 'background.paper',
             borderRadius: 2,
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'divider',
+            opacity: useAI ? 0.5 : 1,
+            pointerEvents: useAI ? 'none' : 'auto'
         }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <TuneIcon sx={{ fontSize: 28, color: 'primary.main', mr: 2 }} />
@@ -813,6 +921,7 @@ const HomePage: React.FC = () => {
                             checked={advancedMode}
                             onChange={(e) => setAdvancedMode(e.target.checked)}
                             color="primary"
+                            disabled={useAI}
                         />
                     }
                     label={
@@ -1080,6 +1189,10 @@ const HomePage: React.FC = () => {
                 <ConfigurationProgress />
 
                 {renderBasicConfigSection()}
+
+                <SectionDivider />
+
+                {renderAIModeSection()}
 
                 <SectionDivider />
 
