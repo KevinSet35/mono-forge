@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { existsSync, promises as fs } from 'fs';
 import { join } from 'path';
-import { ScriptModule } from '../interfaces/script-module.interface';
+import { ScriptModule } from '../../interfaces/script-module.interface';
 
 @Injectable()
 export class ScriptFileService {

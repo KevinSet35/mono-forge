@@ -3,11 +3,11 @@ import { BadRequestException } from '@nestjs/common';
 import { ScriptGeneratorInput } from '@mono-forge/types';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { ScriptGeneratorService } from '../service/script-generator.service';
-import { ScriptFileService } from '../service/script-file.service';
-import { ScriptBuilderService } from '../service/script-builder.service';
-import { IntegrationDataService } from '../service/integration-data.service';
-import { ModuleResolverService } from '../service/module-resolver.service';
+import { ScriptGeneratorService } from '../service/template/script-generator.service';
+import { ScriptFileService } from '../service/template/script-file.service';
+import { ScriptBuilderService } from '../service/template/script-builder.service';
+import { IntegrationDataService } from '../service/template/integration-data.service';
+import { ModuleResolverService } from '../service/template/module-resolver.service';
 
 describe('ScriptGeneratorService - Exact Script Matching', () => {
     let service: ScriptGeneratorService;
@@ -44,7 +44,8 @@ describe('ScriptGeneratorService - Exact Script Matching', () => {
                 advancedConfig: {
                     packageManager: 'npm',
                     nodeVersion: '18.x'
-                }
+                },
+                useAI: false,
             };
 
             // Act
@@ -59,7 +60,8 @@ describe('ScriptGeneratorService - Exact Script Matching', () => {
             // Arrange
             const input: ScriptGeneratorInput = {
                 projectName: 'minimal-project',
-                integrations: ['typescript']
+                integrations: ['typescript'],
+                useAI: false,
             };
 
             // Act
@@ -78,7 +80,8 @@ describe('ScriptGeneratorService - Exact Script Matching', () => {
                 advancedConfig: {
                     packageManager: 'yarn',
                     nodeVersion: '20.x'
-                }
+                },
+                useAI: false,
             };
 
             // Act
@@ -97,7 +100,8 @@ describe('ScriptGeneratorService - Exact Script Matching', () => {
                 advancedConfig: {
                     packageManager: 'pnpm',
                     nodeVersion: 'latest'
-                }
+                },
+                useAI: false,
             };
 
             // Act
@@ -171,7 +175,8 @@ describe('ScriptGeneratorService - Exact Script Matching', () => {
                 advancedConfig: {
                     packageManager: 'npm',
                     nodeVersion: '18.x'
-                }
+                },
+                useAI: false,
             };
 
             const result = await service.generateScriptWithData(input);

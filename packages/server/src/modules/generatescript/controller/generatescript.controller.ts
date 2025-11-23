@@ -8,22 +8,24 @@ import {
     NodeVersionsData,
     ValidationData
 } from '@mono-forge/types';
-import { ScriptGeneratorService } from '../service/script-generator.service';
+import { ScriptGeneratorService } from '../service/template/script-generator.service';
+import { ScriptGeneratorFactory } from '../factory/script-generator.factory';
 
 @Controller('generatescript')
 export class GeneratescriptController {
     constructor(
         private readonly scriptGeneratorService: ScriptGeneratorService,
+        private readonly scriptGeneratorFactory: ScriptGeneratorFactory,
     ) { }
 
     @Post()
     async generateScript(@Body() scriptInput: ScriptGeneratorInput): Promise<ScriptGenerationData> {
-        return this.scriptGeneratorService.generateScriptWithData(scriptInput);
+        return this.scriptGeneratorFactory.generateScriptWithData(scriptInput);
     }
 
     @Post('generate')
     async generateScriptRaw(@Body() scriptInput: ScriptGeneratorInput): Promise<string> {
-        return this.scriptGeneratorService.generateScriptRaw(scriptInput);
+        return this.scriptGeneratorFactory.generateScriptRaw(scriptInput);
     }
 
     @Get('integrations')
