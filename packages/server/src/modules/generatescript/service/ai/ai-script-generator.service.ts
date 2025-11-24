@@ -3,9 +3,10 @@ import {
     ScriptGenerationData,
     ScriptGeneratorSchema
 } from '@mono-forge/types';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ClaudeClientService } from '../../../claude-client/claude-client.service';
-import { getMonorepoPrompt, getSystemPrompt } from '../../prompts/monorepo.prompt';
+import { getFixBashScriptPrompt, getMonorepoPrompt, getSystemPrompt } from '../../prompts/monorepo.prompt';
+import { spawn } from 'child_process';
 
 @Injectable()
 export class AIScriptGeneratorService {
@@ -72,14 +73,42 @@ export class AIScriptGeneratorService {
      */
     private async generateScriptsWithAI(scriptInput: ScriptGeneratorInput): Promise<string> {
         console.log('Generating scripts with AI for input:', scriptInput);
-        const claudeOutputString = await this.claudeClientService.chat(
-            getSystemPrompt(),
-            getMonorepoPrompt(scriptInput.projectName)
-        );
 
-        const bashScript = this.extractBashScript(claudeOutputString);
+        try {
+            const initialResponse = await this.claudeClientService.chat(
+                getSystemPrompt(),
+                getMonorepoPrompt(scriptInput.projectName)
+            );
 
-        return bashScript;
+            const extractedScript = this.extractBashScript(initialResponse);
+            const isValid = await this.isValidBashScript(extractedScript);
+
+            if (isValid) {
+                return extractedScript;
+            }
+
+            console.log('Generated bash script is invalid. Retrying with fix prompt.');
+            const fixResponse = await this.claudeClientService.chat(
+                getSystemPrompt(),
+                getFixBashScriptPrompt(extractedScript)
+            );
+
+            const fixedScript = this.extractBashScript(fixResponse);
+            const isFixedScriptValid = await this.isValidBashScript(fixedScript);
+
+            if (!isFixedScriptValid) {
+                throw new InternalServerErrorException(
+                    'Failed to generate valid bash script after retry attempt'
+                );
+            }
+
+            return fixedScript;
+        } catch (error) {
+            console.error('Error generating script with AI:', error);
+            throw new InternalServerErrorException(
+                error instanceof Error ? error.message : 'Failed to generate script with AI'
+            );
+        }
     }
 
     private extractBashScript(response: string): string {
@@ -99,5 +128,22 @@ export class AIScriptGeneratorService {
         // Otherwise return as-is
         return response;
     }
+
+
+    private async isValidBashScript(script: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            const bash = spawn('bash', ['-n'], {
+                shell: false
+            });
+
+            bash.stdin.write(script);
+            bash.stdin.end();
+
+            bash.on('exit', (code) => {
+                resolve(code === 0);
+            });
+        });
+    }
+
 
 }

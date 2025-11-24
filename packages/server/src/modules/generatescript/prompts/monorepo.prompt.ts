@@ -2,6 +2,12 @@ export function getSystemPrompt(): string {
     return 'You are a bash script generator. Output only valid bash scripts without any explanations or markdown formatting.';
 }
 
+export function getFixBashScriptPrompt(brokenBashScript: string): string {
+    return `The following bash script contains syntax errors or invalid constructs. Fix all issues to make it a valid, working bash script. Output only the corrected bash script with no explanations, comments about changes, or any other text.
+
+${brokenBashScript}`;
+}
+
 export function getMonorepoPrompt(monoRepoName: string): string {
     return `You are helping me set up a JavaScript/TypeScript monorepo.
 IMPORTANT: 👉 Your final output must be a single Bash script that I can run locally. Running this script should fully scaffold the entire monorepo exactly as described — creating folders, package.json files, tsconfigs, turbo.json, NestJS servers, React clients, and shared packages.
@@ -55,7 +61,27 @@ correct "name": "@${monoRepoName}/<pkg>"
 root tsconfig paths mapping
 
 
-3. npm Workspaces
+3. Import Statements - No File Extensions
+CRITICAL: All import statements in TypeScript/JavaScript files must NOT include file extensions.
+
+❌ WRONG:
+import App from './App.js';
+import { helper } from './utils.ts';
+import config from './config.mjs';
+
+✅ CORRECT:
+import App from './App';
+import { helper } from './utils';
+import config from './config';
+
+This applies to:
+- Relative imports (./Component, ../utils)
+- Absolute imports using path aliases (@${monoRepoName}/shared-types)
+- All .ts, .tsx, .js, .jsx, .mjs extensions must be omitted
+
+TypeScript's moduleResolution: "Bundler" will handle the resolution automatically.
+
+4. npm Workspaces
 Root package.json must include:
 
 "workspaces": [
@@ -70,7 +96,7 @@ The root package.json must also specify the package manager at the end of the fi
 
 (Use the latest stable npm version available at the time - for example, npm@10.9.2 or whatever is current)
 
-4. Turborepo
+5. Turborepo
 Provide a working turbo.json that must look exactly like this:
 
 {
@@ -134,7 +160,7 @@ Provide a working turbo.json that must look exactly like this:
     }
 }
 
-5. NestJS (ESM) Servers in apps/<app>/server
+6. NestJS (ESM) Servers in apps/<app>/server
 Each server must include:
 
 "type": "module" in package.json
@@ -148,7 +174,7 @@ scripts:
    "start"
 
 
-6. React SPA Clients in apps/<app>/client
+7. React SPA Clients in apps/<app>/client
 Each client must include:
 
 "type": "module"
@@ -157,7 +183,7 @@ tsconfig using jsx: "react-jsx" and moduleResolution: "Bundler"
 minimal src/index.tsx
 
 
-7. Shared Packages in packages/*
+8. Shared Packages in packages/*
 Each package must include:
 
 "name": "@${monoRepoName}/<package>"
@@ -167,7 +193,7 @@ exports map
 tsconfig extending root config with moduleResolution: "Bundler"
 
 
-8. TypeScript Configuration
+9. TypeScript Configuration
 IMPORTANT: 
 - Do NOT include "noEmit": true in any tsconfig.json files. All packages and apps need to emit compiled output.
 - Do NOT include "rootDir": "./src" in the ROOT tsconfig.json file. The root tsconfig is a base configuration that gets extended by individual apps and packages, so it should not specify a rootDir. Only individual app/package tsconfig files should define their own rootDir if needed.
